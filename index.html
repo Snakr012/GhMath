@@ -88,6 +88,74 @@
 <footer>
     © 2026 Snakr Games | Free Browser Games
 </footer>
+<button id="settingsBtn" style="
+position:fixed;
+top:20px;
+right:20px;
+padding:10px 15px;
+background:lime;
+border:none;
+border-radius:8px;
+cursor:pointer;
+font-weight:bold;
+">
+⚙ Settings
+</button>
 
+<div id="settingsPanel" style="
+display:none;
+position:fixed;
+top:60px;
+right:20px;
+background:#1a1a1a;
+padding:20px;
+border-radius:15px;
+box-shadow:0 0 20px black;
+text-align:center;
+">
+<h3>Change Background</h3>
+<input type="file" id="bgUpload" accept="image/*">
+<br><br>
+<button onclick="resetBg()">Reset</button>
+</div>
+
+<script>
+const settingsBtn = document.getElementById("settingsBtn");
+const panel = document.getElementById("settingsPanel");
+const upload = document.getElementById("bgUpload");
+
+// Toggle panel
+settingsBtn.onclick = () => {
+    panel.style.display = panel.style.display === "none" ? "block" : "none";
+};
+
+// Load saved background
+const savedBg = localStorage.getItem("customBg");
+if (savedBg) {
+    document.body.style.backgroundImage = `url(${savedBg})`;
+    document.body.style.backgroundSize = "cover";
+    document.body.style.backgroundAttachment = "fixed";
+}
+
+// When user uploads file
+upload.onchange = function() {
+    const file = this.files[0];
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const imageData = e.target.result;
+        document.body.style.backgroundImage = `url(${imageData})`;
+        document.body.style.backgroundSize = "cover";
+        document.body.style.backgroundAttachment = "fixed";
+        localStorage.setItem("customBg", imageData);
+    };
+    reader.readAsDataURL(file);
+};
+
+// Reset function
+function resetBg() {
+    localStorage.removeItem("customBg");
+    document.body.style.backgroundImage = "";
+}
+</script>
 </body>
 </html>
