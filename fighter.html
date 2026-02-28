@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fighter Jet Shooter</title>
+    <style>
+        body {
+            margin: 0;
+            background: black;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background: #000;
+            border: 3px solid lime;
+        }
+    </style>
+</head>
+<body>
+
+<h1 style="text-align:center; color: lime;">✈ Fighter Jet Shooter</h1>
+<p style="text-align:center; color:white;">Use Arrow Keys to Move | Space to Shoot | Score: <span id="score">0</span></p>
+<canvas id="gameCanvas" width="500" height="600"></canvas>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+const jetWidth = 40;
+const jetHeight = 40;
+let jetX = canvas.width / 2 - jetWidth/2;
+let jetY = canvas.height - jetHeight - 10;
+
+let leftPressed = false;
+let rightPressed = false;
+let upPressed = false;
+let downPressed = false;
+let spacePressed = false;
+
+let lasers = [];
+let enemies = [];
+let score = 0;
+
+// Create enemies every second
+setInterval(() => {
+    const enemyX = Math.random() * (canvas.width - 40);
+    enemies.push({x: enemyX, y: -40, width: 40, height: 40});
+}, 1000);
+
+// Event listeners
+document.addEventListener("keydown", keyDown);
+document.addEventListener("keyup", keyUp);
+
+function keyDown(e) {
+    if (e.key === "ArrowLeft") leftPressed = true;
+    if (e.key === "ArrowRight") rightPressed = true;
+    if (e.key === "ArrowUp") upPressed = true;
+    if (e.key === "ArrowDown") downPressed = true;
+    if (e.key === " ") spacePressed = true;
+}
+
+function keyUp(e) {
+    if (e.key === "ArrowLeft") leftPressed = false;
+    if (e.key === "ArrowRight") rightPressed = false;
+    if (e.key === "ArrowUp") upPressed = false;
+    if (e.key === "ArrowDown") downPressed = false;
+    if (e.key === " ") spacePressed = false;
+}
+
+// Draw player jet
+function drawJet() {
+    ctx.fillStyle = "lime";
+    ctx.beginPath();
+    ctx.moveTo(jetX + jetWidth/2, jetY);
+    ctx.lineTo(jetX, jetY + jetHeight);
+    ctx.lineTo(jetX + jetWidth, jetY + jetHeight);
+    ctx.closePath();
+    ctx.fill();
+}
+
+// Draw lasers
+function drawLasers() {
+    ctx.fillStyle = "red";
+    lasers.forEach(l => ctx.fillRect(l.x, l.y, 5, 15));
+}
+
+// Draw enemies
+function drawEnemies() {
+    ctx.fillStyle = "white";
+    enemies.forEach(e => ctx.fillRect(e.x, e.y, e.width, e.height));
+}
+
+// Update game state
+function update() {
+    // Move jet
+    if (leftPressed && jetX > 0) jetX -= 5;
+    if (rightPressed && jetX + jetWidth < canvas.width) jetX += 5;
+    if (upPressed && jetY > 0) jetY -= 5;
+    if (downPressed && jetY + jetHeight < canvas.height) jetY += 5;
+
+    // Fire lasers
+    if (spacePressed) {
+        lasers.push({x: jetX + jetWidth/2 - 2.5, y: jetY, width: 5, height: 15});
+        spacePressed = false; // single shot per press
+    }
+
+    // Move lasers
+    lasers.forEach((l, i) => {
+        l.y -= 8;
+        if (l.y < -15) lasers.splice(i,1);
+    });
+
+    // Move enemies
+    enemies.forEach((e, i) => {
+        e.y += 3;
+        // Check collision with jet
+        if (e.x < jetX + jetWidth && e.x + e.width > jetX &&
+            e.y < jetY + jetHeight && e.y + e.height > jetY) {
+            alert("Game Over! Score: " + score);
+            document.location.reload();
+        }
+
+        // Check collision with lasers
+        lasers.forEach((l,j) => {
+            if (l.x < e.x + e.width && l.x + l.width > e.x &&
+                l.y < e.y + e.height && l.y + l.height > e.y) {
+                enemies.splice(i,1);
+                lasers.splice(j,1);
+                score++;
+                document.getElementById("score").innerText = score;
+            }
+        });
+
+        // Remove enemies if off screen
+        if (e.y > canvas.height) enemies.splice(i,1);
+    });
+}
+
+// Draw everything
+function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    drawJet();
+    drawLasers();
+    drawEnemies();
+    update();
+    requestAnimationFrame(draw);
+}
+
+draw();
+</script>
+
+</body>
+</html>
