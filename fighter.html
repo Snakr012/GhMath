@@ -23,6 +23,11 @@
 <canvas id="gameCanvas" width="500" height="600"></canvas>
 
 <script>
+    const playerImg = new Image();
+playerImg.src = "player.png";
+
+const enemyImg = new Image();
+enemyImg.src = "enemy.png";
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
@@ -69,13 +74,7 @@ function keyUp(e) {
 
 // Draw player jet
 function drawJet() {
-    ctx.fillStyle = "lime";
-    ctx.beginPath();
-    ctx.moveTo(jetX + jetWidth/2, jetY);
-    ctx.lineTo(jetX, jetY + jetHeight);
-    ctx.lineTo(jetX + jetWidth, jetY + jetHeight);
-    ctx.closePath();
-    ctx.fill();
+    ctx.drawImage(playerImg, jetX, jetY, jetWidth, jetHeight);
 }
 
 // Draw lasers
@@ -86,8 +85,7 @@ function drawLasers() {
 
 // Draw enemies
 function drawEnemies() {
-    ctx.fillStyle = "white";
-    enemies.forEach(e => ctx.fillRect(e.x, e.y, e.width, e.height));
+    enemies.forEach(e => ctx.drawImage(enemyImg, e.x, e.y, e.width, e.height));
 }
 
 // Update game state
