@@ -20,18 +20,17 @@
 <body>
 
 <h1>🐦 Flappy Clone</h1>
-<p>Press SPACE to flap | Score: <span id="score">0</span></p>
 <canvas id="gameCanvas" width="400" height="600"></canvas>
 
 <script>
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
+let gameState = "start"; // start, playing, gameover
+
 let bird = {
     x: 80,
     y: 300,
-    width: 30,
-    height: 30,
     gravity: 0.6,
     lift: -10,
     velocity: 0
@@ -40,13 +39,31 @@ let bird = {
 let pipes = [];
 let frame = 0;
 let score = 0;
-let gameOver = false;
 
 document.addEventListener("keydown", function(e) {
     if (e.code === "Space") {
-        bird.velocity = bird.lift;
+        if (gameState === "start") {
+            startGame();
+        } else if (gameState === "playing") {
+            bird.velocity = bird.lift;
+        } else if (gameState === "gameover") {
+            resetGame();
+        }
     }
 });
+
+function startGame() {
+    gameState = "playing";
+}
+
+function resetGame() {
+    gameState = "start";
+    bird.y = 300;
+    bird.velocity = 0;
+    pipes = [];
+    frame = 0;
+    score = 0;
+}
 
 function drawBird() {
     ctx.fillStyle = "yellow";
@@ -64,13 +81,13 @@ function drawPipes() {
 }
 
 function update() {
-    if (gameOver) return;
+    if (gameState !== "playing") return;
 
     bird.velocity += bird.gravity;
     bird.y += bird.velocity;
 
     if (bird.y + 15 > canvas.height || bird.y - 15 < 0) {
-        endGame();
+        gameState = "gameover";
     }
 
     if (frame % 90 === 0) {
@@ -91,23 +108,36 @@ function update() {
             bird.x - 15 < pipe.x + 50 &&
             (bird.y - 15 < pipe.top || bird.y + 15 > pipe.bottom)
         ) {
-            endGame();
+            gameState = "gameover";
         }
 
         if (pipe.x + 50 < 0) {
             pipes.splice(i, 1);
             score++;
-            document.getElementById("score").innerText = score;
         }
     });
 
     frame++;
 }
 
-function endGame() {
-    gameOver = true;
-    alert("Game Over! Score: " + score);
-    document.location.reload();
+function drawUI() {
+    ctx.fillStyle = "white";
+    ctx.font = "30px Arial";
+    ctx.textAlign = "center";
+
+    if (gameState === "start") {
+        ctx.fillText("Press SPACE to Start", canvas.width / 2, 300);
+    }
+
+    if (gameState === "playing") {
+        ctx.fillText("Score: " + score, canvas.width / 2, 50);
+    }
+
+    if (gameState === "gameover") {
+        ctx.fillText("Game Over", canvas.width / 2, 260);
+        ctx.fillText("Score: " + score, canvas.width / 2, 310);
+        ctx.fillText("Press SPACE to Restart", canvas.width / 2, 360);
+    }
 }
 
 function gameLoop() {
@@ -115,6 +145,7 @@ function gameLoop() {
     drawBird();
     drawPipes();
     update();
+    drawUI();
     requestAnimationFrame(gameLoop);
 }
 
