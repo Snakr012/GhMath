@@ -120,24 +120,35 @@ class Tower{
 }
 
 function updateBullets(){
-    for(let bullet of bullets){
+    for(let i = bullets.length - 1; i >= 0; i--){
+        let bullet = bullets[i];
+
+        if(!bullet.target){
+            bullets.splice(i,1);
+            continue;
+        }
+
         let dx = bullet.target.x - bullet.x;
         let dy = bullet.target.y - bullet.y;
         let dist = Math.sqrt(dx*dx + dy*dy);
 
-        if(dist < 5){
+        if(dist < 8){
             bullet.target.health -= 10;
+
             if(bullet.target.health <= 0){
                 gold += 10;
                 enemies.splice(enemies.indexOf(bullet.target),1);
             }
-            bullets.splice(bullets.indexOf(bullet),1);
-        }else{
-            bullet.x += dx/dist*5;
-            bullet.y += dy/dist*5;
+
+            bullets.splice(i,1);
+        } else {
+            bullet.x += dx/dist * 6;
+            bullet.y += dy/dist * 6;
         }
     }
-    function drawBullets(){
+}
+
+function drawBullets(){
     ctx.fillStyle = "yellow";
 
     for(let bullet of bullets){
@@ -145,7 +156,6 @@ function updateBullets(){
         ctx.arc(bullet.x, bullet.y, 5, 0, Math.PI*2);
         ctx.fill();
     }
-}
 }
 
 function startWave(){
@@ -183,7 +193,9 @@ function gameLoop(){
 
     enemies.forEach(e=>{e.update(); e.draw();});
     towers.forEach(t=>{t.update(); t.draw();});
+
     updateBullets();
+    drawBullets();
 
     if(lives<=0){
         alert("Game Over");
