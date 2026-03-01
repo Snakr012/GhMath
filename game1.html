@@ -24,12 +24,56 @@
 <button onclick="addPoint()">CLICK ME</button>
 
 <script>
-let score = 0;
+let gold = 0;
+let clickValue = 1;
+let autoClickers = 0;
 
-function addPoint() {
-    score++;
-    document.getElementById("score").innerText = score;
+let clickUpgradeCost = 50;
+let autoClickerCost = 100;
+
+function clickGold(){
+    gold += clickValue;
 }
+
+function buyClickUpgrade(){
+    if(gold >= clickUpgradeCost){
+        gold -= clickUpgradeCost;
+        clickValue++;
+        clickUpgradeCost = Math.floor(clickUpgradeCost * 1.5);
+    }
+}
+
+function buyAutoClicker(){
+    if(gold >= autoClickerCost){
+        gold -= autoClickerCost;
+        autoClickers++;
+        autoClickerCost = Math.floor(autoClickerCost * 1.6);
+    }
+}
+
+// Auto income loop
+setInterval(()=>{
+    gold += autoClickers;
+},1000);
+
+function updateUI(){
+    document.getElementById("gold").textContent = gold;
+    document.getElementById("clickValue").textContent = clickValue;
+    document.getElementById("autoClickers").textContent = autoClickers;
+    document.getElementById("clickCost").textContent = clickUpgradeCost;
+    document.getElementById("autoCost").textContent = autoClickerCost;
+}
+
+function goBack(){
+    window.location.href = window.location.origin + "/" + window.location.pathname.split("/")[1] + "/";
+}
+
+function gameLoop(){
+    updateUI();
+    requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
 </script>
 
 </body>
