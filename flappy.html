@@ -14,17 +14,29 @@ body {
 canvas {
     display: block;
     margin: 0 auto;
-    background: transparent;
 }
 
-#startBtn {
+#startBtn, #fullscreenBtn {
     position: absolute;
-    top: 300px;
     left: 50%;
     transform: translateX(-50%);
-    padding: 15px 30px;
-    font-size: 20px;
+    padding: 12px 25px;
+    font-size: 18px;
     cursor: pointer;
+}
+
+#startBtn { top: 280px; }
+#fullscreenBtn { top: 330px; }
+
+#leaderboard {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(0,0,0,0.5);
+    color: white;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: left;
 }
 </style>
 </head>
@@ -32,26 +44,23 @@ canvas {
 
 <h1>🐦 Flappy Clone</h1>
 <button id="startBtn">Start Game</button>
+<button id="fullscreenBtn">Full Screen</button>
+
+<div id="leaderboard">
+    <h3>🏆 Leaderboard</h3>
+    <ol id="scoreList"></ol>
+</div>
+
 <canvas id="gameCanvas" width="400" height="600"></canvas>
 
 <script>
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 const startBtn = document.getElementById("startBtn");
+const fullscreenBtn = document.getElementById("fullscreenBtn");
+const scoreList = document.getElementById("scoreList");
 
 let gameState = "start";
-
-let birdImg = new Image();
-birdImg.src = "bird.png";
-
-let flapSound = new Audio("flap.mp3");
-let hitSound = new Audio("hit.mp3");
-
-let clouds = [
-    {x:50, y:100},
-    {x:250, y:200},
-    {x:150, y:350}
-];
 
 let bird = {
     x: 80,
@@ -59,20 +68,27 @@ let bird = {
     gravity: 0.6,
     lift: -10,
     velocity: 0,
-    size: 40
+    size: 20
 };
 
 let pipes = [];
 let frame = 0;
 let score = 0;
-let highScore = localStorage.getItem("flappyHighScore") || 0;
+
+let leaderboard = JSON.parse(localStorage.getItem("flappyLeaderboard")) || [];
 
 startBtn.onclick = startGame;
+fullscreenBtn.onclick = () => {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+    } else {
+        document.exitFullscreen();
+    }
+};
 
 document.addEventListener("keydown", function(e) {
     if (e.code === "Space" && gameState === "playing") {
         bird.velocity = bird.lift;
-        flapSound.play();
     }
 });
 
@@ -90,20 +106,11 @@ function resetGame() {
     score = 0;
 }
 
-function drawClouds() {
-    ctx.fillStyle = "white";
-    clouds.forEach(cloud => {
-        ctx.beginPath();
-        ctx.arc(cloud.x, cloud.y, 20, 0, Math.PI * 2);
-        ctx.arc(cloud.x+20, cloud.y, 25, 0, Math.PI * 2);
-        ctx.fill();
-        cloud.x -= 0.5;
-        if (cloud.x < -50) cloud.x = canvas.width + 50;
-    });
-}
-
 function drawBird() {
-    ctx.drawImage(birdImg, bird.x-20, bird.y-20, bird.size, bird.size);
+    ctx.fillStyle = "yellow";
+    ctx.beginPath();
+    ctx.arc(bird.x, bird.y, bird.size, 0, Math.PI * 2);
+    ctx.fill();
 }
 
 function drawPipes() {
@@ -120,7 +127,7 @@ function update() {
     bird.velocity += bird.gravity;
     bird.y += bird.velocity;
 
-    if (bird.y + 20 > canvas.height || bird.y - 20 < 0) {
+    if (bird.y + bird.size > canvas.height || bird.y - bird.size < 0) {
         endGame();
     }
 
@@ -138,9 +145,9 @@ function update() {
         pipe.x -= 3;
 
         if (
-            bird.x + 20 > pipe.x &&
-            bird.x - 20 < pipe.x + 50 &&
-            (bird.y - 20 < pipe.top || bird.y + 20 > pipe.bottom)
+            bird.x + bird.size > pipe.x &&
+            bird.x - bird.size < pipe.x + 50 &&
+            (bird.y - bird.size < pipe.top || bird.y + bird.size > pipe.bottom)
         ) {
             endGame();
         }
@@ -156,13 +163,27 @@ function update() {
 
 function endGame() {
     gameState = "start";
-    hitSound.play();
-    if (score > highScore) {
-        highScore = score;
-        localStorage.setItem("flappyHighScore", highScore);
-    }
     startBtn.innerText = "Restart";
     startBtn.style.display = "block";
+
+    saveScore(score);
+    updateLeaderboard();
+}
+
+function saveScore(newScore) {
+    leaderboard.push(newScore);
+    leaderboard.sort((a, b) => b - a);
+    leaderboard = leaderboard.slice(0, 5);
+    localStorage.setItem("flappyLeaderboard", JSON.stringify(leaderboard));
+}
+
+function updateLeaderboard() {
+    scoreList.innerHTML = "";
+    leaderboard.forEach(score => {
+        let li = document.createElement("li");
+        li.textContent = score;
+        scoreList.appendChild(li);
+    });
 }
 
 function drawUI() {
@@ -171,21 +192,16 @@ function drawUI() {
     ctx.textAlign = "center";
 
     if (gameState === "start") {
-        ctx.globalAlpha = 0.5 + Math.sin(Date.now()/300)/2;
-        ctx.fillText("Press SPACE to Flap", canvas.width/2, 200);
-        ctx.globalAlpha = 1;
+        ctx.fillText("Press Start to Play", canvas.width/2, 250);
     }
 
     if (gameState === "playing") {
         ctx.fillText("Score: " + score, canvas.width/2, 50);
     }
-
-    ctx.fillText("High Score: " + highScore, canvas.width/2, 80);
 }
 
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawClouds();
     drawBird();
     drawPipes();
     update();
@@ -193,6 +209,7 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
+updateLeaderboard();
 gameLoop();
 </script>
 
