@@ -1,27 +1,57 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Clicker Game</title>
-    <style>
-        body {
-            background: black;
-            color: white;
-            text-align: center;
-            font-family: Arial;
-        }
-        button {
-            font-size: 30px;
-            padding: 20px;
-            margin-top: 20px;
-        }
-    </style>
+<title>Idle Clicker X</title>
+<style>
+body{
+    margin:0;
+    background:#111;
+    color:white;
+    font-family:Arial;
+    text-align:center;
+}
+button{
+    padding:10px 20px;
+    margin:5px;
+    background:#00ffcc;
+    border:none;
+    cursor:pointer;
+    font-weight:bold;
+}
+button:hover{
+    background:#00ccaa;
+}
+.container{
+    padding:20px;
+}
+</style>
 </head>
 <body>
 
-<h1>🔥 Clicker Game 🔥</h1>
-<p>Score: <span id="score">0</span></p>
+<h1>💰 Idle Clicker X</h1>
 
-<button onclick="addPoint()">CLICK ME</button>
+<div class="container">
+
+<h2>Gold: <span id="gold">0</span></h2>
+
+<button onclick="clickGold()">CLICK 💥</button>
+
+<h3>Upgrades</h3>
+
+<p>Click Power: <span id="clickValue">1</span></p>
+<button onclick="buyClickUpgrade()">
+Upgrade Click (Cost: <span id="clickCost">50</span>)
+</button>
+
+<p>Auto Clickers: <span id="autoClickers">0</span></p>
+<button onclick="buyAutoClicker()">
+Buy Auto Clicker (Cost: <span id="autoCost">100</span>)
+</button>
+
+<br><br>
+<button onclick="goBack()">⬅ Back to Hub</button>
+
+</div>
 
 <script>
 let gold = 0;
@@ -30,6 +60,16 @@ let autoClickers = 0;
 
 let clickUpgradeCost = 50;
 let autoClickerCost = 100;
+
+// Load Save
+if(localStorage.getItem("idleSave")){
+    let save = JSON.parse(localStorage.getItem("idleSave"));
+    gold = save.gold;
+    clickValue = save.clickValue;
+    autoClickers = save.autoClickers;
+    clickUpgradeCost = save.clickUpgradeCost;
+    autoClickerCost = save.autoClickerCost;
+}
 
 function clickGold(){
     gold += clickValue;
@@ -51,10 +91,21 @@ function buyAutoClicker(){
     }
 }
 
-// Auto income loop
+// Auto income every second
 setInterval(()=>{
     gold += autoClickers;
 },1000);
+
+// Save every 2 seconds
+setInterval(()=>{
+    localStorage.setItem("idleSave", JSON.stringify({
+        gold,
+        clickValue,
+        autoClickers,
+        clickUpgradeCost,
+        autoClickerCost
+    }));
+},2000);
 
 function updateUI(){
     document.getElementById("gold").textContent = gold;
@@ -64,6 +115,138 @@ function updateUI(){
     document.getElementById("autoCost").textContent = autoClickerCost;
 }
 
+// Universal GitHub-safe back button
+function goBack(){
+    window.location.href = window.location.origin + "/" + window.location.pathname.split("/")[1] + "/";
+}
+
+function gameLoop(){
+    updateUI();
+    requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+
+</body>
+</html><!DOCTYPE html>
+<html>
+<head>
+<title>Idle Clicker X</title>
+<style>
+body{
+    margin:0;
+    background:#111;
+    color:white;
+    font-family:Arial;
+    text-align:center;
+}
+button{
+    padding:10px 20px;
+    margin:5px;
+    background:#00ffcc;
+    border:none;
+    cursor:pointer;
+    font-weight:bold;
+}
+button:hover{
+    background:#00ccaa;
+}
+.container{
+    padding:20px;
+}
+</style>
+</head>
+<body>
+
+<h1>💰 Idle Clicker X</h1>
+
+<div class="container">
+
+<h2>Gold: <span id="gold">0</span></h2>
+
+<button onclick="clickGold()">CLICK 💥</button>
+
+<h3>Upgrades</h3>
+
+<p>Click Power: <span id="clickValue">1</span></p>
+<button onclick="buyClickUpgrade()">
+Upgrade Click (Cost: <span id="clickCost">50</span>)
+</button>
+
+<p>Auto Clickers: <span id="autoClickers">0</span></p>
+<button onclick="buyAutoClicker()">
+Buy Auto Clicker (Cost: <span id="autoCost">100</span>)
+</button>
+
+<br><br>
+<button onclick="goBack()">⬅ Back to Hub</button>
+
+</div>
+
+<script>
+let gold = 0;
+let clickValue = 1;
+let autoClickers = 0;
+
+let clickUpgradeCost = 50;
+let autoClickerCost = 100;
+
+// Load Save
+if(localStorage.getItem("idleSave")){
+    let save = JSON.parse(localStorage.getItem("idleSave"));
+    gold = save.gold;
+    clickValue = save.clickValue;
+    autoClickers = save.autoClickers;
+    clickUpgradeCost = save.clickUpgradeCost;
+    autoClickerCost = save.autoClickerCost;
+}
+
+function clickGold(){
+    gold += clickValue;
+}
+
+function buyClickUpgrade(){
+    if(gold >= clickUpgradeCost){
+        gold -= clickUpgradeCost;
+        clickValue++;
+        clickUpgradeCost = Math.floor(clickUpgradeCost * 1.5);
+    }
+}
+
+function buyAutoClicker(){
+    if(gold >= autoClickerCost){
+        gold -= autoClickerCost;
+        autoClickers++;
+        autoClickerCost = Math.floor(autoClickerCost * 1.6);
+    }
+}
+
+// Auto income every second
+setInterval(()=>{
+    gold += autoClickers;
+},1000);
+
+// Save every 2 seconds
+setInterval(()=>{
+    localStorage.setItem("idleSave", JSON.stringify({
+        gold,
+        clickValue,
+        autoClickers,
+        clickUpgradeCost,
+        autoClickerCost
+    }));
+},2000);
+
+function updateUI(){
+    document.getElementById("gold").textContent = gold;
+    document.getElementById("clickValue").textContent = clickValue;
+    document.getElementById("autoClickers").textContent = autoClickers;
+    document.getElementById("clickCost").textContent = clickUpgradeCost;
+    document.getElementById("autoCost").textContent = autoClickerCost;
+}
+
+// Universal GitHub-safe back button
 function goBack(){
     window.location.href = window.location.origin + "/" + window.location.pathname.split("/")[1] + "/";
 }
