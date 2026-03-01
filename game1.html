@@ -92,52 +92,40 @@ select{ padding:5px; margin-left:5px; }
 <button onclick="goBack()">⬅ Back to Hub</button>
 
 <script>
-let gold=0, energy=0, gems=0;
-let autoClickers=0, generators=0;
-let worldLevel=1;
-let clickValue=1, gemClickBoost=0, energyBoost=0;
-let skills={}, achievements=[], boostActive=false;
+// ======== GAME STATE OBJECT ========
+let gameData = {
+    gold:0, energy:0, gems:0,
+    autoClickers:0, generators:0,
+    worldLevel:1, clickValue:1,
+    gemClickBoost:0, energyBoost:0,
+    skills:{}, achievements:[],
+    energyUsedForBoosts:0, gemsCrafted:0, worldsExpandedWithEnergy:0,
+    boostActive:false
+};
 
-// Trackers
-let energyUsedForBoosts=0, gemsCrafted=0, worldsExpandedWithEnergy=0;
-
-// LOAD ON START
+// ======== LOAD ON START ========
 if(localStorage.getItem("empireSave")){
-    let s=JSON.parse(localStorage.getItem("empireSave"));
-    gold = s.gold || 0;
-    energy = s.energy || 0;
-    gems = s.gems || 0;
-    autoClickers = s.autoClickers || 0;
-    generators = s.generators || 0;
-    worldLevel = s.worldLevel || 1;
-    clickValue = s.clickValue || 1;
-    gemClickBoost = s.gemClickBoost || 0;
-    energyBoost = s.energyBoost || 0;
-    skills = s.skills || {};
-    achievements = s.achievements || [];
-    energyUsedForBoosts = s.energyUsedForBoosts || 0;
-    gemsCrafted = s.gemsCrafted || 0;
-    worldsExpandedWithEnergy = s.worldsExpandedWithEnergy || 0;
-
-    let offline=(Date.now()-s.lastPlayed)/1000;
-    gold += offline*autoClickers;
-    energy += offline*generators;
+    let s = JSON.parse(localStorage.getItem("empireSave"));
+    gameData = s;
+    let offline = (Date.now() - (s.lastPlayed || Date.now()))/1000;
+    gameData.gold += offline * gameData.autoClickers;
+    gameData.energy += offline * gameData.generators;
 }
 
-// CLICK
-function clickGold(){ gold += clickValue + gemClickBoost; }
+// ======== CLICK ========
+function clickGold(){ gameData.gold += gameData.clickValue + gameData.gemClickBoost; }
 
-// BULK PURCHASE
+// ======== BULK PURCHASE ========
 function getBulk(){ return parseInt(document.getElementById("bulkSelect").value); }
 function buyAuto(){
     let bulk=getBulk(); let cost=100*bulk;
-    if(gold>=cost){ gold-=cost; autoClickers+=bulk; }
-    else alert("Not enough Gold to buy "+bulk+" Auto Clickers!");
+    if(gameData.gold>=cost){ gameData.gold-=cost; gameData.autoClickers+=bulk; }
+    else alert("Not enough Gold!");
 }
 function buyGenerator(){
     let bulk=getBulk(); let cost=200*bulk;
-    if(gold>=cost){ gold-=cost; generators+=bulk; }
-    else alert("Not enough Gold to buy "+bulk+" Generators!");
+    if(gameData.gold>=cost){ gameData.gold-=cost; gameData.generators+=bulk; }
+    else alert("Not enough Gold!");
 }
 function updateButtonCosts(){
     let bulk=getBulk();
@@ -147,96 +135,79 @@ function updateButtonCosts(){
 document.getElementById("bulkSelect").addEventListener("change",updateButtonCosts);
 updateButtonCosts();
 
-// GEM SHOP
-function buyGemBoost(){ if(gems>=5){ gems-=5; gemClickBoost++; } }
-function buyEnergyBoost(){ if(gems>=5){ gems-=5; energyBoost++; } }
-function unlockSkill(skill){ if(gems>=3 && !skills[skill]){ gems-=3; skills[skill]=true; alert("Skill Unlocked!"); } }
+// ======== GEM SHOP ========
+function buyGemBoost(){ if(gameData.gems>=5){ gameData.gems-=5; gameData.gemClickBoost++; } }
+function buyEnergyBoost(){ if(gameData.gems>=5){ gameData.gems-=5; gameData.energyBoost++; } }
+function unlockSkill(skill){ if(gameData.gems>=3 && !gameData.skills[skill]){ gameData.gems-=3; gameData.skills[skill]=true; alert("Skill Unlocked!"); } }
 
-// WORLD EXPANSION
+// ======== WORLD EXPANSION ========
 function expandWorld(){
     let goldCost=1000, energyCost=500;
-    if(skills.energyEfficiency) energyCost=Math.floor(energyCost/2);
-    if(gold>=goldCost && energy>=energyCost){
-        gold-=goldCost; energy-=energyCost; worldLevel++; worldsExpandedWithEnergy++;
+    if(gameData.skills.energyEfficiency) energyCost=Math.floor(energyCost/2);
+    if(gameData.gold>=goldCost && gameData.energy>=energyCost){
+        gameData.gold-=goldCost; gameData.energy-=energyCost;
+        gameData.worldLevel++; gameData.worldsExpandedWithEnergy++;
         alert("New World Unlocked!"); checkAchievements();
-    } else alert("Not enough Gold or Energy to expand!");
+    } else alert("Not enough Gold or Energy!");
 }
 
-// BOOSTS
+// ======== BOOSTS ========
 function activateBoost(){
-    let boostCost=200; if(skills.energyEfficiency) boostCost=Math.floor(boostCost/2);
+    let boostCost=200; if(gameData.skills.energyEfficiency) boostCost=Math.floor(boostCost/2);
     const boostDuration=10000;
-    if(energy>=boostCost && !boostActive){
-        energy-=boostCost; boostActive=true; energyUsedForBoosts+=boostCost;
+    if(gameData.energy>=boostCost && !gameData.boostActive){
+        gameData.energy-=boostCost; gameData.boostActive=true; gameData.energyUsedForBoosts+=boostCost;
         alert("Boost Activated! Gold & Energy production doubled for 10 seconds.");
-        setTimeout(()=>{ boostActive=false; alert("Boost Ended!"); checkAchievements(); }, boostDuration);
-    } else if(boostActive) alert("Boost already active!");
+        setTimeout(()=>{ gameData.boostActive=false; alert("Boost Ended!"); checkAchievements(); }, boostDuration);
+    } else if(gameData.boostActive) alert("Boost already active!");
     else alert("Not enough Energy!");
 }
 
-// CRAFT GEM
+// ======== CRAFT GEM ========
 function craftGem(){
     let goldCost=5000, energyCost=1000;
-    if(skills.energyEfficiency) energyCost=Math.floor(energyCost/2);
-    if(gold>=goldCost && energy>=energyCost){
-        gold-=goldCost; energy-=energyCost; gems++; gemsCrafted++;
+    if(gameData.skills.energyEfficiency) energyCost=Math.floor(energyCost/2);
+    if(gameData.gold>=goldCost && gameData.energy>=energyCost){
+        gameData.gold-=goldCost; gameData.energy-=energyCost; gameData.gems++; gameData.gemsCrafted++;
         alert("You crafted 1 Gem!"); checkAchievements();
-    } else alert("Not enough Gold or Energy to craft a gem!");
+    } else alert("Not enough Gold or Energy!");
 }
 
-// AUTO PRODUCTION
+// ======== AUTO PRODUCTION ========
 setInterval(()=>{
-    let goldMultiplier=worldLevel*(skills.goldBoost?2:1)*(boostActive?2:1);
-    let energyMultiplier=(1+energyBoost)*(skills.energyBoost?2:1)*(boostActive?2:1);
-    if(skills.energyMastery) energyMultiplier=Math.floor(energyMultiplier*1.5);
-    gold += autoClickers*goldMultiplier;
-    energy += generators*energyMultiplier;
+    let goldMultiplier=gameData.worldLevel*(gameData.skills.goldBoost?2:1)*(gameData.boostActive?2:1);
+    let energyMultiplier=(1+gameData.energyBoost)*(gameData.skills.energyBoost?2:1)*(gameData.boostActive?2:1);
+    if(gameData.skills.energyMastery) energyMultiplier=Math.floor(energyMultiplier*1.5);
+    gameData.gold += gameData.autoClickers*goldMultiplier;
+    gameData.energy += gameData.generators*energyMultiplier;
     checkAchievements();
 },1000);
 
-// ACHIEVEMENTS
+// ======== ACHIEVEMENTS ========
 function checkAchievements(){
-    if(gold>=10000 && !achievements.includes("Rich")){ achievements.push("Rich"); gems+=5; alert("Achievement: Rich (+5 Gems)"); }
-    if(worldLevel>=5 && !achievements.includes("Explorer")){ achievements.push("Explorer"); gems+=5; alert("Achievement: Explorer (+5 Gems)"); }
-    if(energyUsedForBoosts>=200 && !achievements.includes("Energetic")){ achievements.push("Energetic"); gems+=2; alert("Achievement: Energetic (+2 Gems)"); }
-    if(gemsCrafted>=5 && !achievements.includes("Crafty")){ achievements.push("Crafty"); gems+=5; alert("Achievement: Crafty (+5 Gems)"); }
-    if(worldsExpandedWithEnergy>=3 && !achievements.includes("World Power")){ achievements.push("World Power"); gems+=5; alert("Achievement: World Power (+5 Gems)"); }
+    if(gameData.gold>=10000 && !gameData.achievements.includes("Rich")){ gameData.achievements.push("Rich"); gameData.gems+=5; alert("Achievement: Rich (+5 Gems)"); }
+    if(gameData.worldLevel>=5 && !gameData.achievements.includes("Explorer")){ gameData.achievements.push("Explorer"); gameData.gems+=5; alert("Achievement: Explorer (+5 Gems)"); }
+    if(gameData.energyUsedForBoosts>=200 && !gameData.achievements.includes("Energetic")){ gameData.achievements.push("Energetic"); gameData.gems+=2; alert("Achievement: Energetic (+2 Gems)"); }
+    if(gameData.gemsCrafted>=5 && !gameData.achievements.includes("Crafty")){ gameData.achievements.push("Crafty"); gameData.gems+=5; alert("Achievement: Crafty (+5 Gems)"); }
+    if(gameData.worldsExpandedWithEnergy>=3 && !gameData.achievements.includes("World Power")){ gameData.achievements.push("World Power"); gameData.gems+=5; alert("Achievement: World Power (+5 Gems)"); }
 }
-function updateAchievements(){ let ul=document.getElementById("achievements"); ul.innerHTML=""; achievements.forEach(a=>{ let li=document.createElement("li"); li.textContent=a; ul.appendChild(li); }); }
+function updateAchievements(){
+    let ul=document.getElementById("achievements"); ul.innerHTML="";
+    gameData.achievements.forEach(a=>{ let li=document.createElement("li"); li.textContent=a; ul.appendChild(li); });
+}
 
-// SAVE / LOAD / RESET
+// ======== SAVE / LOAD / RESET ========
 function manualSave(){
-    localStorage.setItem("empireSave",JSON.stringify({
-        gold, energy, gems,
-        autoClickers, generators,
-        worldLevel, clickValue,
-        gemClickBoost, energyBoost,
-        skills, achievements,
-        energyUsedForBoosts, gemsCrafted, worldsExpandedWithEnergy,
-        lastPlayed:Date.now()
-    }));
+    gameData.lastPlayed = Date.now();
+    localStorage.setItem("empireSave", JSON.stringify(gameData));
     const status=document.getElementById("saveStatus");
     status.textContent="💾 Game Saved!";
     setTimeout(()=>{ status.textContent=""; },2000);
 }
 function manualLoad(){
     if(localStorage.getItem("empireSave")){
-        let s=JSON.parse(localStorage.getItem("empireSave"));
-        gold = s.gold || 0;
-        energy = s.energy || 0;
-        gems = s.gems || 0;
-        autoClickers = s.autoClickers || 0;
-        generators = s.generators || 0;
-        worldLevel = s.worldLevel || 1;
-        clickValue = s.clickValue || 1;
-        gemClickBoost = s.gemClickBoost || 0;
-        energyBoost = s.energyBoost || 0;
-        skills = s.skills || {};
-        achievements = s.achievements || [];
-        energyUsedForBoosts = s.energyUsedForBoosts || 0;
-        gemsCrafted = s.gemsCrafted || 0;
-        worldsExpandedWithEnergy = s.worldsExpandedWithEnergy || 0;
-
+        let s = JSON.parse(localStorage.getItem("empireSave"));
+        gameData = s;
         updateUI();
         const status=document.getElementById("saveStatus");
         status.textContent="📂 Game Loaded!";
@@ -246,33 +217,37 @@ function manualLoad(){
 function resetGame(){
     if(confirm("Are you sure you want to reset your game? This cannot be undone.")){
         localStorage.removeItem("empireSave");
-        gold=0; energy=0; gems=0;
-        autoClickers=0; generators=0; worldLevel=1;
-        clickValue=1; gemClickBoost=0; energyBoost=0;
-        skills={}; achievements=[];
-        energyUsedForBoosts=0; gemsCrafted=0; worldsExpandedWithEnergy=0;
+        gameData = {
+            gold:0, energy:0, gems:0,
+            autoClickers:0, generators:0,
+            worldLevel:1, clickValue:1,
+            gemClickBoost:0, energyBoost:0,
+            skills:{}, achievements:[],
+            energyUsedForBoosts:0, gemsCrafted:0, worldsExpandedWithEnergy:0,
+            boostActive:false
+        };
         updateUI();
     }
 }
 
-// UI
+// ======== UI ========
 function updateUI(){
-    document.getElementById("gold").textContent=Math.floor(gold);
-    document.getElementById("energy").textContent=Math.floor(energy);
-    document.getElementById("gems").textContent=gems;
-    document.getElementById("autoClickers").textContent=autoClickers;
-    document.getElementById("generators").textContent=generators;
-    document.getElementById("worldLevel").textContent=worldLevel;
+    document.getElementById("gold").textContent = Math.floor(gameData.gold);
+    document.getElementById("energy").textContent = Math.floor(gameData.energy);
+    document.getElementById("gems").textContent = gameData.gems;
+    document.getElementById("autoClickers").textContent = gameData.autoClickers;
+    document.getElementById("generators").textContent = gameData.generators;
+    document.getElementById("worldLevel").textContent = gameData.worldLevel;
     updateAchievements();
 }
 
-// BACK BUTTON
-function goBack(){ window.location.href=window.location.origin+"/"+window.location.pathname.split("/")[1]+"/"; }
+// ======== BACK BUTTON ========
+function goBack(){ window.location.href = window.location.origin+"/"+window.location.pathname.split("/")[1]+"/"; }
 
-// SILENT AUTO SAVE
+// ======== SILENT AUTO SAVE ========
 setInterval(()=>{ manualSave(); },2000);
 
-// GAME LOOP
+// ======== GAME LOOP ========
 function gameLoop(){ updateUI(); requestAnimationFrame(gameLoop); }
 gameLoop();
 </script>
