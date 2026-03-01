@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Idle Empire X</title>
+<title>Idle Empire X — Expansion Edition</title>
 <style>
 body{
     margin:0;
@@ -24,6 +24,7 @@ button:hover{ background:#00ccaa; }
     padding:15px;
     border:1px solid #00ffcc;
 }
+select{ padding:5px; margin-left:5px; }
 </style>
 </head>
 <body>
@@ -38,31 +39,39 @@ button:hover{ background:#00ccaa; }
 
 <div class="panel">
 <h3>🏭 Resource Production</h3>
+
 <p>Auto Clickers: <span id="autoClickers">0</span></p>
-<button onclick="buyAuto()">Buy Auto (100 Gold)</button>
+<label for="bulkSelect">Buy in bulk:</label>
+<select id="bulkSelect">
+  <option value="1">1</option>
+  <option value="5">5</option>
+  <option value="10">10</option>
+  <option value="50">50</option>
+</select><br>
+<button id="buyAutoBtn" onclick="buyAuto()">Buy Auto (100 Gold)</button>
 
 <p>Energy Generators: <span id="generators">0</span></p>
-<button onclick="buyGenerator()">Buy Generator (200 Gold)</button>
+<button id="buyGenBtn" onclick="buyGenerator()">Buy Generator (200 Gold)</button>
 </div>
 
 <div class="panel">
 <h3>💎 Gem Shop</h3>
 <button onclick="buyGemBoost()">Permanent +1 Click (5 Gems)</button>
 <button onclick="buyEnergyBoost()">Energy Boost (5 Gems)</button>
+<button onclick="unlockSkill('energyEfficiency')">Energy Efficiency (3 Gems)</button>
+<button onclick="unlockSkill('energyMastery')">Energy Mastery (3 Gems)</button>
 </div>
-    <button onclick="activateBoost()">⚡ Activate Boost (200 Energy)</button>
-<button onclick="craftGem()">💎 Craft Gem (5000 Gold + 1000 Energy)</button>
 
 <div class="panel">
 <h3>🌎 World Expansion</h3>
 <p>World Level: <span id="worldLevel">1</span></p>
-<button onclick="expandWorld()">Expand (1000 Gold)</button>
+<button onclick="expandWorld()">Expand (1000 Gold + 500 Energy)</button>
 </div>
 
 <div class="panel">
-<h3>🧠 Skill Tree</h3>
-<button onclick="unlockSkill('goldBoost')">Gold Boost (3 Gems)</button>
-<button onclick="unlockSkill('energyBoost')">Energy Boost (3 Gems)</button>
+<h3>⚡ Energy Actions</h3>
+<button onclick="activateBoost()">Activate Boost (200 Energy)</button>
+<button onclick="craftGem()">Craft Gem (5000 Gold + 1000 Energy)</button>
 </div>
 
 <div class="panel">
@@ -86,11 +95,15 @@ let skills = {};
 let achievements = [];
 let boostActive = false;
 
-// LOAD
+// Track energy achievements
+let energyUsedForBoosts = 0;
+let gemsCrafted = 0;
+let worldsExpandedWithEnergy = 0;
+
+// LOAD SAVE
 if(localStorage.getItem("empireSave")){
     let s = JSON.parse(localStorage.getItem("empireSave"));
     Object.assign(window, s);
-
     let offline = (Date.now() - s.lastPlayed)/1000;
     gold += offline * autoClickers;
     energy += offline * generators;
@@ -101,160 +114,146 @@ function clickGold(){
     gold += clickValue + gemClickBoost;
 }
 
-// BUYERS
+// BULK PURCHASE
+function getBulk(){ return parseInt(document.getElementById("bulkSelect").value); }
+
 function buyAuto(){
-    if(gold >= 100){
-        gold -= 100;
-        autoClickers++;
-    }
+    let bulk = getBulk();
+    let cost = 100 * bulk;
+    if(gold >= cost){
+        gold -= cost;
+        autoClickers += bulk;
+    } else { alert("Not enough Gold to buy "+bulk+" Auto Clickers!"); }
 }
 function buyGenerator(){
-    if(gold >= 200){
-        gold -= 200;
-        generators++;
-    }
+    let bulk = getBulk();
+    let cost = 200 * bulk;
+    if(gold >= cost){
+        gold -= cost;
+        generators += bulk;
+    } else { alert("Not enough Gold to buy "+bulk+" Generators!"); }
 }
+
+// Update button cost display
+function updateButtonCosts(){
+    let bulk = getBulk();
+    document.getElementById("buyAutoBtn").textContent = `Buy Auto (${bulk*100} Gold)`;
+    document.getElementById("buyGenBtn").textContent = `Buy Generator (${bulk*200} Gold)`;
+}
+document.getElementById("bulkSelect").addEventListener("change", updateButtonCosts);
+updateButtonCosts();
 
 // GEM SHOP
-function buyGemBoost(){
-    if(gems >= 5){
-        gems -= 5;
-        gemClickBoost++;
-    }
-}
-function buyEnergyBoost(){
-    if(gems >= 5){
-        gems -= 5;
-        energyBoost++;
-    }
-}
+function buyGemBoost(){ if(gems>=5){ gems-=5; gemClickBoost++; } }
+function buyEnergyBoost(){ if(gems>=5){ gems-=5; energyBoost++; } }
+function unlockSkill(skill){ if(gems>=3 && !skills[skill]){ gems-=3; skills[skill]=true; alert("Skill Unlocked!"); } }
 
-// WORLD EXPANSION WITH ENERGY
+// WORLD EXPANSION
 function expandWorld(){
-    const goldCost = 1000;
-    const energyCost = 500;
-    if(gold >= goldCost && energy >= energyCost){
-        gold -= goldCost;
-        energy -= energyCost;
+    let goldCost = 1000;
+    let energyCost = 500;
+    if(skills.energyEfficiency) energyCost = Math.floor(energyCost/2);
+
+    if(gold>=goldCost && energy>=energyCost){
+        gold-=goldCost;
+        energy-=energyCost;
         worldLevel++;
+        worldsExpandedWithEnergy++;
         alert("New World Unlocked!");
-    } else {
-        alert("Not enough Gold or Energy to expand!");
-    }
+        checkAchievements();
+    } else { alert("Not enough Gold or Energy to expand!"); }
 }
 
-// SKILLS
-function unlockSkill(skill){
-    if(gems >= 3 && !skills[skill]){
-        gems -= 3;
-        skills[skill] = true;
-        alert("Skill Unlocked!");
-    }
-}
-
-// TEMPORARY BOOST
+// BOOSTS
 function activateBoost(){
-    const boostCost = 200;
-    const boostDuration = 10000; // 10 seconds
-    if(energy >= boostCost && !boostActive){
+    let boostCost = 200;
+    if(skills.energyEfficiency) boostCost = Math.floor(boostCost/2);
+    const boostDuration = 10000;
+    if(energy>=boostCost && !boostActive){
         energy -= boostCost;
         boostActive = true;
+        energyUsedForBoosts += boostCost;
         alert("Boost Activated! Gold & Energy production doubled for 10 seconds.");
-        setTimeout(() => {
-            boostActive = false;
-            alert("Boost Ended!");
-        }, boostDuration);
-    } else if(boostActive){
-        alert("Boost already active!");
-    } else {
-        alert("Not enough Energy!");
-    }
+        setTimeout(()=>{ boostActive=false; alert("Boost Ended!"); checkAchievements(); }, boostDuration);
+    } else if(boostActive){ alert("Boost already active!"); }
+    else { alert("Not enough Energy!"); }
 }
 
-// CRAFT GEMS
+// CRAFT GEM
 function craftGem(){
-    const goldCost = 5000;
-    const energyCost = 1000;
-    if(gold >= goldCost && energy >= energyCost){
-        gold -= goldCost;
-        energy -= energyCost;
+    let goldCost = 5000;
+    let energyCost = 1000;
+    if(skills.energyEfficiency) energyCost = Math.floor(energyCost/2);
+    if(gold>=goldCost && energy>=energyCost){
+        gold-=goldCost;
+        energy-=energyCost;
         gems++;
+        gemsCrafted++;
         alert("You crafted 1 Gem!");
-    } else {
-        alert("Not enough Gold or Energy to craft a gem!");
-    }
+        checkAchievements();
+    } else { alert("Not enough Gold or Energy to craft a gem!"); }
 }
 
 // AUTO PRODUCTION
 setInterval(()=>{
-    let goldMultiplier = worldLevel * (skills.goldBoost ? 2 : 1) * (boostActive ? 2 : 1);
-    let energyMultiplier = (1 + energyBoost) * (skills.energyBoost ? 2 : 1) * (boostActive ? 2 : 1);
+    let goldMultiplier = worldLevel * (skills.goldBoost?2:1) * (boostActive?2:1);
+    let energyMultiplier = (1+energyBoost) * (skills.energyBoost?2:1) * (boostActive?2:1);
+    if(skills.energyMastery) energyMultiplier = Math.floor(energyMultiplier*1.5);
 
     gold += autoClickers * goldMultiplier;
     energy += generators * energyMultiplier;
-
     checkAchievements();
-}, 1000);
+},1000);
 
 // ACHIEVEMENTS
 function checkAchievements(){
-    if(gold >= 10000 && !achievements.includes("Rich")){
-        achievements.push("Rich");
-        gems += 5;
-        alert("Achievement: Rich (+5 Gems)");
-    }
-    if(worldLevel >= 5 && !achievements.includes("Explorer")){
-        achievements.push("Explorer");
-        gems += 5;
-        alert("Achievement: Explorer (+5 Gems)");
-    }
+    if(gold>=10000 && !achievements.includes("Rich")){ achievements.push("Rich"); gems+=5; alert("Achievement: Rich (+5 Gems)"); }
+    if(worldLevel>=5 && !achievements.includes("Explorer")){ achievements.push("Explorer"); gems+=5; alert("Achievement: Explorer (+5 Gems)"); }
+    if(energyUsedForBoosts>=200 && !achievements.includes("Energetic")){ achievements.push("Energetic"); gems+=2; alert("Achievement: Energetic (+2 Gems)"); }
+    if(gemsCrafted>=5 && !achievements.includes("Crafty")){ achievements.push("Crafty"); gems+=5; alert("Achievement: Crafty (+5 Gems)"); }
+    if(worldsExpandedWithEnergy>=3 && !achievements.includes("World Power")){ achievements.push("World Power"); gems+=5; alert("Achievement: World Power (+5 Gems)"); }
 }
 
 function updateAchievements(){
-    let ul = document.getElementById("achievements");
-    ul.innerHTML = "";
+    let ul=document.getElementById("achievements");
+    ul.innerHTML="";
     achievements.forEach(a=>{
-        let li = document.createElement("li");
-        li.textContent = a;
+        let li=document.createElement("li");
+        li.textContent=a;
         ul.appendChild(li);
     });
 }
 
 // SAVE
 setInterval(()=>{
-    localStorage.setItem("empireSave", JSON.stringify({
+    localStorage.setItem("empireSave",JSON.stringify({
         gold, energy, gems,
         autoClickers, generators,
         worldLevel, clickValue,
         gemClickBoost, energyBoost,
         skills, achievements,
-        lastPlayed: Date.now()
+        energyUsedForBoosts, gemsCrafted, worldsExpandedWithEnergy,
+        lastPlayed:Date.now()
     }));
-}, 2000);
+},2000);
 
 // UI
 function updateUI(){
-    document.getElementById("gold").textContent = Math.floor(gold);
-    document.getElementById("energy").textContent = Math.floor(energy);
-    document.getElementById("gems").textContent = gems;
-    document.getElementById("autoClickers").textContent = autoClickers;
-    document.getElementById("generators").textContent = generators;
-    document.getElementById("worldLevel").textContent = worldLevel;
+    document.getElementById("gold").textContent=Math.floor(gold);
+    document.getElementById("energy").textContent=Math.floor(energy);
+    document.getElementById("gems").textContent=gems;
+    document.getElementById("autoClickers").textContent=autoClickers;
+    document.getElementById("generators").textContent=generators;
+    document.getElementById("worldLevel").textContent=worldLevel;
     updateAchievements();
 }
 
 // BACK BUTTON
-function goBack(){
-    window.location.href = window.location.origin + "/" + window.location.pathname.split("/")[1] + "/";
-}
+function goBack(){ window.location.href=window.location.origin+"/"+window.location.pathname.split("/")[1]+"/"; }
 
 // GAME LOOP
-function gameLoop(){
-    updateUI();
-    requestAnimationFrame(gameLoop);
-}
+function gameLoop(){ updateUI(); requestAnimationFrame(gameLoop); }
 gameLoop();
 </script>
-
 </body>
 </html>
