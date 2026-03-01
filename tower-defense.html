@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Tower Defense X</title>
+<style>
+body{
+    margin:0;
+    background:#111;
+    color:white;
+    font-family:Arial;
+    text-align:center;
+}
+canvas{
+    background:#1a1a1a;
+    display:block;
+    margin:auto;
+}
+button{
+    padding:10px 20px;
+    background:#00ffcc;
+    border:none;
+    cursor:pointer;
+    font-weight:bold;
+}
+#ui{
+    padding:10px;
+}
+</style>
+</head>
+<body>
+
+<h1>🏰 Tower Defense X</h1>
+
+<div id="ui">
+Gold: <span id="gold">100</span> |
+Wave: <span id="wave">1</span> |
+Lives: <span id="lives">10</span>
+<br><br>
+<button onclick="startWave()">Start Wave</button>
+<button onclick="upgradeTower()">Upgrade Selected</button>
+<button onclick="goBack()">⬅ Back to Hub</button>
+</div>
+
+<canvas id="gameCanvas" width="900" height="500"></canvas><script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let gold = 100;
+let wave = 1;
+let lives = 10;
+
+let enemies = [];
+let towers = [];
+let bullets = [];
+let selectedTower = null;
+
+const path = [
+    {x:0, y:250},
+    {x:300, y:250},
+    {x:300, y:100},
+    {x:600, y:100},
+    {x:600, y:400},
+    {x:900, y:400}
+];class Enemy{
+    constructor(boss=false){
+        this.x = path[0].x;
+        this.y = path[0].y;
+        this.pathIndex = 0;
+        this.speed = boss ? 0.7 : 1.5;
+        this.health = boss ? 100 : 30 + wave*5;
+        this.maxHealth = this.health;
+        this.boss = boss;
+    }
+
+    update(){
+        let target = path[this.pathIndex+1];
+        if(!target) return;
+
+        let dx = target.x - this.x;
+        let dy = target.y - this.y;
+        let dist = Math.sqrt(dx*dx + dy*dy);
+
+        if(dist < 2){
+            this.pathIndex++;
+            if(this.pathIndex >= path.length-1){
+                lives--;
+                enemies.splice(enemies.indexOf(this),1);
+            }
+        }else{
+            this.x += dx/dist * this.speed;
+            this.y += dy/dist * this.speed;
+        }
+    }
+
+    draw(){
+        ctx.fillStyle = this.boss ? "purple" : "red";
+        ctx.beginPath();
+        ctx.arc(this.x,this.y,15,0,Math.PI*2);
+        ctx.fill();
+
+        ctx.fillStyle="green";
+        ctx.fillRect(this.x-15,this.y-25,
+            (this.health/this.maxHealth)*30,5);
+    }
+}class Tower{
+    constructor(x,y){
+        this.x=x;
+        this.y=y;
+        this.range=120;
+        this.fireRate=60;
+        this.cooldown=0;
+        this.level=1;
+        this.damage=10;
+    }
+
+    update(){
+        if(this.cooldown>0) this.cooldown--;
+
+        for(let enemy of enemies){
+            let dx = enemy.x - this.x;
+            let dy = enemy.y - this.y;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+
+            if(dist < this.range && this.cooldown<=0){
+                bullets.push({
+                    x:this.x,
+                    y:this.y,
+                    target:enemy,
+                    damage:this.damage
+                });
+                this.cooldown = this.fireRate;
+                break;
+            }
+        }
+    }
+
+    draw(){
+        ctx.fillStyle="cyan";
+        ctx.beginPath();
+        ctx.arc(this.x,this.y,20,0,Math.PI*2);
+        ctx.fill();
+    }
+}function updateBullets(){
+    for(let bullet of bullets){
+        let dx = bullet.target.x - bullet.x;
+        let dy = bullet.target.y - bullet.y;
+        let dist = Math.sqrt(dx*dx + dy*dy);
+
+        if(dist < 5){
+            bullet.target.health -= bullet.damage;
+
+            if(bullet.target.health <= 0){
+                gold += 10;
+                enemies.splice(enemies.indexOf(bullet.target),1);
+            }
+
+            bullets.splice(bullets.indexOf(bullet),1);
+        }else{
+            bullet.x += dx/dist*5;
+            bullet.y += dy/dist*5;
+        }
+    }
+}function startWave(){
+    let count = 5 + wave*2;
+    for(let i=0;i<count;i++){
+        setTimeout(()=>{
+            let boss = (wave % 5 === 0 && i===count-1);
+            enemies.push(new Enemy(boss));
+        }, i*500);
+    }
+}canvas.addEventListener("click", e=>{
+    let rect = canvas.getBoundingClientRect();
+    let x = e.clientX - rect.left;
+    let y = e.clientY - rect.top;
+
+    if(gold >= 50){
+        towers.push(new Tower(x,y));
+        gold -= 50;
+    }
+});function upgradeTower(){
+    if(!selectedTower) return;
+
+    if(gold >= 100){
+        selectedTower.level++;
+        selectedTower.damage += 10;
+        selectedTower.range += 20;
+        gold -= 100;
+    }
+}function giveXP(){
+    let hubData = JSON.parse(localStorage.getItem("playerHubData"));
+    if(hubData){
+        let earnedXP = wave*25;
+        hubData.xp += earnedXP;
+        hubData.totalScore += wave*100;
+
+        if(hubData.xp >= hubData.level*100){
+            hubData.xp -= hubData.level*100;
+            hubData.level++;
+            alert("LEVEL UP!");
+        }
+
+        localStorage.setItem("playerHubData", JSON.stringify(hubData));
+    }
+}function gameLoop(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    document.getElementById("gold").textContent = gold;
+    document.getElementById("wave").textContent = wave;
+    document.getElementById("lives").textContent = lives;
+
+    // Draw path
+    ctx.strokeStyle="white";
+    ctx.lineWidth=40;
+    ctx.beginPath();
+    ctx.moveTo(path[0].x,path[0].y);
+    for(let p of path){
+        ctx.lineTo(p.x,p.y);
+    }
+    ctx.stroke();
+
+    enemies.forEach(e=>{e.update(); e.draw();});
+    towers.forEach(t=>{t.update(); t.draw();});
+    updateBullets();
+
+    if(enemies.length===0){
+        wave++;
+    }
+
+    if(lives<=0){
+        giveXP();
+        alert("Game Over");
+        location.reload();
+    }
+
+    requestAnimationFrame(gameLoop);
+}
+
+gameLoop();V
