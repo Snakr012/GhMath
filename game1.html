@@ -25,6 +25,7 @@ button:hover{ background:#00ccaa; }
     border:1px solid #00ffcc;
 }
 select{ padding:5px; margin-left:5px; }
+#saveStatus{ margin-left:10px; color:#0f0; font-weight:bold; }
 </style>
 </head>
 <body>
@@ -79,6 +80,7 @@ select{ padding:5px; margin-left:5px; }
 <button onclick="manualSave()">💾 Save Game</button>
 <button onclick="manualLoad()">📂 Load Game</button>
 <button onclick="resetGame()">❌ Reset Game</button>
+<span id="saveStatus"></span>
 </div>
 
 <div class="panel">
@@ -96,7 +98,7 @@ let worldLevel=1;
 let clickValue=1, gemClickBoost=0, energyBoost=0;
 let skills={}, achievements=[], boostActive=false;
 
-// Trackers for energy achievements
+// Trackers
 let energyUsedForBoosts=0, gemsCrafted=0, worldsExpandedWithEnergy=0;
 
 // LOAD
@@ -113,18 +115,15 @@ function clickGold(){ gold += clickValue + gemClickBoost; }
 
 // BULK PURCHASE
 function getBulk(){ return parseInt(document.getElementById("bulkSelect").value); }
-
 function buyAuto(){
-    let bulk=getBulk();
-    let cost=100*bulk;
+    let bulk=getBulk(); let cost=100*bulk;
     if(gold>=cost){ gold-=cost; autoClickers+=bulk; }
-    else { alert("Not enough Gold to buy "+bulk+" Auto Clickers!"); }
+    else alert("Not enough Gold to buy "+bulk+" Auto Clickers!");
 }
 function buyGenerator(){
-    let bulk=getBulk();
-    let cost=200*bulk;
+    let bulk=getBulk(); let cost=200*bulk;
     if(gold>=cost){ gold-=cost; generators+=bulk; }
-    else { alert("Not enough Gold to buy "+bulk+" Generators!"); }
+    else alert("Not enough Gold to buy "+bulk+" Generators!");
 }
 function updateButtonCosts(){
     let bulk=getBulk();
@@ -146,7 +145,7 @@ function expandWorld(){
     if(gold>=goldCost && energy>=energyCost){
         gold-=goldCost; energy-=energyCost; worldLevel++; worldsExpandedWithEnergy++;
         alert("New World Unlocked!"); checkAchievements();
-    } else { alert("Not enough Gold or Energy to expand!"); }
+    } else alert("Not enough Gold or Energy to expand!");
 }
 
 // BOOSTS
@@ -157,8 +156,8 @@ function activateBoost(){
         energy-=boostCost; boostActive=true; energyUsedForBoosts+=boostCost;
         alert("Boost Activated! Gold & Energy production doubled for 10 seconds.");
         setTimeout(()=>{ boostActive=false; alert("Boost Ended!"); checkAchievements(); }, boostDuration);
-    } else if(boostActive){ alert("Boost already active!"); }
-    else { alert("Not enough Energy!"); }
+    } else if(boostActive) alert("Boost already active!");
+    else alert("Not enough Energy!");
 }
 
 // CRAFT GEM
@@ -168,7 +167,7 @@ function craftGem(){
     if(gold>=goldCost && energy>=energyCost){
         gold-=goldCost; energy-=energyCost; gems++; gemsCrafted++;
         alert("You crafted 1 Gem!"); checkAchievements();
-    } else { alert("Not enough Gold or Energy to craft a gem!"); }
+    } else alert("Not enough Gold or Energy to craft a gem!");
 }
 
 // AUTO PRODUCTION
@@ -202,13 +201,18 @@ function manualSave(){
         energyUsedForBoosts, gemsCrafted, worldsExpandedWithEnergy,
         lastPlayed:Date.now()
     }));
-    alert("Game saved!");
+    const status=document.getElementById("saveStatus");
+    status.textContent="💾 Game Saved!";
+    setTimeout(()=>{ status.textContent=""; },2000);
 }
 function manualLoad(){
     if(localStorage.getItem("empireSave")){
         let s=JSON.parse(localStorage.getItem("empireSave"));
         Object.assign(window,s);
-        alert("Game loaded!"); updateUI();
+        updateUI();
+        const status=document.getElementById("saveStatus");
+        status.textContent="📂 Game Loaded!";
+        setTimeout(()=>{ status.textContent=""; },2000);
     } else alert("No save found.");
 }
 function resetGame(){
@@ -237,7 +241,7 @@ function updateUI(){
 // BACK BUTTON
 function goBack(){ window.location.href=window.location.origin+"/"+window.location.pathname.split("/")[1]+"/"; }
 
-// AUTO SAVE
+// SILENT AUTO SAVE
 setInterval(()=>{ manualSave(); },2000);
 
 // GAME LOOP
