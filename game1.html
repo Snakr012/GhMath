@@ -1,261 +1,212 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Idle Clicker X</title>
+<title>Idle Empire X</title>
 <style>
 body{
     margin:0;
-    background:#111;
+    background:#0f0f0f;
     color:white;
     font-family:Arial;
     text-align:center;
 }
 button{
-    padding:10px 20px;
+    padding:8px 15px;
     margin:5px;
     background:#00ffcc;
     border:none;
     cursor:pointer;
     font-weight:bold;
 }
-button:hover{
-    background:#00ccaa;
-}
-.container{
-    padding:20px;
-}
-</style>
-</head>
-<body>
-
-<h1>💰 Idle Clicker X</h1>
-
-<div class="container">
-
-<h2>Gold: <span id="gold">0</span></h2>
-
-<button onclick="clickGold()">CLICK 💥</button>
-
-<h3>Upgrades</h3>
-
-<p>Click Power: <span id="clickValue">1</span></p>
-<button onclick="buyClickUpgrade()">
-Upgrade Click (Cost: <span id="clickCost">50</span>)
-</button>
-
-<p>Auto Clickers: <span id="autoClickers">0</span></p>
-<button onclick="buyAutoClicker()">
-Buy Auto Clicker (Cost: <span id="autoCost">100</span>)
-</button>
-
-<br><br>
-<button onclick="goBack()">⬅ Back to Hub</button>
-
-</div>
-
-<script>
-let gold = 0;
-let clickValue = 1;
-let autoClickers = 0;
-
-let clickUpgradeCost = 50;
-let autoClickerCost = 100;
-
-// Load Save
-if(localStorage.getItem("idleSave")){
-    let save = JSON.parse(localStorage.getItem("idleSave"));
-    gold = save.gold;
-    clickValue = save.clickValue;
-    autoClickers = save.autoClickers;
-    clickUpgradeCost = save.clickUpgradeCost;
-    autoClickerCost = save.autoClickerCost;
-}
-
-function clickGold(){
-    gold += clickValue;
-}
-
-function buyClickUpgrade(){
-    if(gold >= clickUpgradeCost){
-        gold -= clickUpgradeCost;
-        clickValue++;
-        clickUpgradeCost = Math.floor(clickUpgradeCost * 1.5);
-    }
-}
-
-function buyAutoClicker(){
-    if(gold >= autoClickerCost){
-        gold -= autoClickerCost;
-        autoClickers++;
-        autoClickerCost = Math.floor(autoClickerCost * 1.6);
-    }
-}
-
-// Auto income every second
-setInterval(()=>{
-    gold += autoClickers;
-},1000);
-
-// Save every 2 seconds
-setInterval(()=>{
-    localStorage.setItem("idleSave", JSON.stringify({
-        gold,
-        clickValue,
-        autoClickers,
-        clickUpgradeCost,
-        autoClickerCost
-    }));
-},2000);
-
-function updateUI(){
-    document.getElementById("gold").textContent = gold;
-    document.getElementById("clickValue").textContent = clickValue;
-    document.getElementById("autoClickers").textContent = autoClickers;
-    document.getElementById("clickCost").textContent = clickUpgradeCost;
-    document.getElementById("autoCost").textContent = autoClickerCost;
-}
-
-// Universal GitHub-safe back button
-function goBack(){
-    window.location.href = window.location.origin + "/" + window.location.pathname.split("/")[1] + "/";
-}
-
-function gameLoop(){
-    updateUI();
-    requestAnimationFrame(gameLoop);
-}
-
-gameLoop();
-</script>
-
-</body>
-</html><!DOCTYPE html>
-<html>
-<head>
-<title>Idle Clicker X</title>
-<style>
-body{
-    margin:0;
-    background:#111;
-    color:white;
-    font-family:Arial;
-    text-align:center;
-}
-button{
-    padding:10px 20px;
-    margin:5px;
-    background:#00ffcc;
-    border:none;
-    cursor:pointer;
-    font-weight:bold;
-}
-button:hover{
-    background:#00ccaa;
-}
-.container{
-    padding:20px;
+button:hover{ background:#00ccaa; }
+.panel{
+    margin:15px;
+    padding:15px;
+    border:1px solid #00ffcc;
 }
 </style>
 </head>
 <body>
 
-<h1>💰 Idle Clicker X</h1>
+<h1>🌍 Idle Empire X</h1>
 
-<div class="container">
+<h2>💰 Gold: <span id="gold">0</span></h2>
+<h3>⚡ Energy: <span id="energy">0</span></h3>
+<h3>💎 Gems: <span id="gems">0</span></h3>
 
-<h2>Gold: <span id="gold">0</span></h2>
+<button onclick="clickGold()">CLICK</button>
 
-<button onclick="clickGold()">CLICK 💥</button>
-
-<h3>Upgrades</h3>
-
-<p>Click Power: <span id="clickValue">1</span></p>
-<button onclick="buyClickUpgrade()">
-Upgrade Click (Cost: <span id="clickCost">50</span>)
-</button>
-
+<div class="panel">
+<h3>🏭 Resource Production</h3>
 <p>Auto Clickers: <span id="autoClickers">0</span></p>
-<button onclick="buyAutoClicker()">
-Buy Auto Clicker (Cost: <span id="autoCost">100</span>)
-</button>
+<button onclick="buyAuto()">Buy Auto (100 Gold)</button>
 
-<br><br>
-<button onclick="goBack()">⬅ Back to Hub</button>
-
+<p>Energy Generators: <span id="generators">0</span></p>
+<button onclick="buyGenerator()">Buy Generator (200 Gold)</button>
 </div>
 
+<div class="panel">
+<h3>💎 Gem Shop</h3>
+<button onclick="buyGemBoost()">Permanent +1 Click (5 Gems)</button>
+<button onclick="buyEnergyBoost()">Energy Boost (5 Gems)</button>
+</div>
+
+<div class="panel">
+<h3>🌎 World Expansion</h3>
+<p>World Level: <span id="worldLevel">1</span></p>
+<button onclick="expandWorld()">Expand (1000 Gold)</button>
+</div>
+
+<div class="panel">
+<h3>🧠 Skill Tree</h3>
+<button onclick="unlockSkill('goldBoost')">Gold Boost (3 Gems)</button>
+<button onclick="unlockSkill('energyBoost')">Energy Boost (3 Gems)</button>
+</div>
+
+<div class="panel">
+<h3>🏆 Achievements</h3>
+<ul id="achievements"></ul>
+</div>
+
+<br>
+<button onclick="goBack()">⬅ Back to Hub</button>
+
 <script>
-let gold = 0;
-let clickValue = 1;
-let autoClickers = 0;
+let gold=0, energy=0, gems=0;
+let autoClickers=0, generators=0;
+let worldLevel=1;
 
-let clickUpgradeCost = 50;
-let autoClickerCost = 100;
+let clickValue=1;
+let gemClickBoost=0;
+let energyBoost=0;
 
-// Load Save
-if(localStorage.getItem("idleSave")){
-    let save = JSON.parse(localStorage.getItem("idleSave"));
-    gold = save.gold;
-    clickValue = save.clickValue;
-    autoClickers = save.autoClickers;
-    clickUpgradeCost = save.clickUpgradeCost;
-    autoClickerCost = save.autoClickerCost;
+let skills={};
+let achievements=[];
+
+// LOAD
+if(localStorage.getItem("empireSave")){
+    let s=JSON.parse(localStorage.getItem("empireSave"));
+    Object.assign(window,s);
+
+    let offline=(Date.now()-s.lastPlayed)/1000;
+    gold += offline * autoClickers;
+    energy += offline * generators;
 }
 
+// CLICK
 function clickGold(){
-    gold += clickValue;
+    gold += clickValue + gemClickBoost;
 }
 
-function buyClickUpgrade(){
-    if(gold >= clickUpgradeCost){
-        gold -= clickUpgradeCost;
-        clickValue++;
-        clickUpgradeCost = Math.floor(clickUpgradeCost * 1.5);
-    }
-}
-
-function buyAutoClicker(){
-    if(gold >= autoClickerCost){
-        gold -= autoClickerCost;
+// BUYERS
+function buyAuto(){
+    if(gold>=100){
+        gold-=100;
         autoClickers++;
-        autoClickerCost = Math.floor(autoClickerCost * 1.6);
+    }
+}
+function buyGenerator(){
+    if(gold>=200){
+        gold-=200;
+        generators++;
     }
 }
 
-// Auto income every second
+// GEM SHOP
+function buyGemBoost(){
+    if(gems>=5){
+        gems-=5;
+        gemClickBoost++;
+    }
+}
+function buyEnergyBoost(){
+    if(gems>=5){
+        gems-=5;
+        energyBoost++;
+    }
+}
+
+// WORLD
+function expandWorld(){
+    if(gold>=1000){
+        gold-=1000;
+        worldLevel++;
+        alert("New World Unlocked!");
+    }
+}
+
+// SKILLS
+function unlockSkill(skill){
+    if(gems>=3 && !skills[skill]){
+        gems-=3;
+        skills[skill]=true;
+        alert("Skill Unlocked!");
+    }
+}
+
+// AUTO PRODUCTION
 setInterval(()=>{
-    gold += autoClickers;
+    gold += autoClickers * worldLevel * (skills.goldBoost?2:1);
+    energy += generators * (1+energyBoost) * (skills.energyBoost?2:1);
+    checkAchievements();
 },1000);
 
-// Save every 2 seconds
-setInterval(()=>{
-    localStorage.setItem("idleSave", JSON.stringify({
-        gold,
-        clickValue,
-        autoClickers,
-        clickUpgradeCost,
-        autoClickerCost
-    }));
-},2000);
-
-function updateUI(){
-    document.getElementById("gold").textContent = gold;
-    document.getElementById("clickValue").textContent = clickValue;
-    document.getElementById("autoClickers").textContent = autoClickers;
-    document.getElementById("clickCost").textContent = clickUpgradeCost;
-    document.getElementById("autoCost").textContent = autoClickerCost;
+// ACHIEVEMENTS
+function checkAchievements(){
+    if(gold>=10000 && !achievements.includes("Rich")){
+        achievements.push("Rich");
+        gems+=5;
+        alert("Achievement: Rich (+5 Gems)");
+    }
+    if(worldLevel>=5 && !achievements.includes("Explorer")){
+        achievements.push("Explorer");
+        gems+=5;
+        alert("Achievement: Explorer (+5 Gems)");
+    }
 }
 
-// Universal GitHub-safe back button
+function updateAchievements(){
+    let ul=document.getElementById("achievements");
+    ul.innerHTML="";
+    achievements.forEach(a=>{
+        let li=document.createElement("li");
+        li.textContent=a;
+        ul.appendChild(li);
+    });
+}
+
+// SAVE
+setInterval(()=>{
+localStorage.setItem("empireSave",JSON.stringify({
+gold,energy,gems,
+autoClickers,generators,
+worldLevel,clickValue,
+gemClickBoost,energyBoost,
+skills,achievements,
+lastPlayed:Date.now()
+}));
+},2000);
+
+// UI
+function updateUI(){
+document.getElementById("gold").textContent=Math.floor(gold);
+document.getElementById("energy").textContent=Math.floor(energy);
+document.getElementById("gems").textContent=gems;
+document.getElementById("autoClickers").textContent=autoClickers;
+document.getElementById("generators").textContent=generators;
+document.getElementById("worldLevel").textContent=worldLevel;
+updateAchievements();
+}
+
+// BACK BUTTON
 function goBack(){
-    window.location.href = window.location.origin + "/" + window.location.pathname.split("/")[1] + "/";
+window.location.href = window.location.origin + "/" + window.location.pathname.split("/")[1] + "/";
 }
 
 function gameLoop(){
-    updateUI();
-    requestAnimationFrame(gameLoop);
+updateUI();
+requestAnimationFrame(gameLoop);
 }
-
 gameLoop();
 </script>
 
