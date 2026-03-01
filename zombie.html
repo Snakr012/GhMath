@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Zombie Survival</title>
+<style>
+body {
+    margin: 0;
+    overflow: hidden;
+    background: #222;
+    color: white;
+    font-family: Arial;
+    text-align: center;
+}
+
+canvas {
+    display: block;
+    margin: 0 auto;
+    background: #333;
+}
+
+#backBtn {
+    position:absolute;
+    top:15px;
+    left:15px;
+    background:black;
+    color:white;
+    border:none;
+    padding:10px 18px;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:bold;
+}
+</style>
+</head>
+<body>
+
+<button id="backBtn" onclick="goHome()">⬅ Hub</button>
+<h1>🧟 Zombie Survival</h1>
+<p>WASD to move | Survive as long as possible</p>
+<canvas id="gameCanvas" width="800" height="500"></canvas>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let keys = {};
+let zombies = [];
+let score = 0;
+let gameOver = false;
+
+let player = {
+    x: 400,
+    y: 250,
+    size: 20,
+    speed: 4
+};
+
+document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
+document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+
+function spawnZombie() {
+    let edge = Math.floor(Math.random() * 4);
+    let x, y;
+
+    if (edge === 0) { x = 0; y = Math.random() * canvas.height; }
+    if (edge === 1) { x = canvas.width; y = Math.random() * canvas.height; }
+    if (edge === 2) { x = Math.random() * canvas.width; y = 0; }
+    if (edge === 3) { x = Math.random() * canvas.width; y = canvas.height; }
+
+    zombies.push({ x, y, size: 20, speed: 1.5 });
+}
+
+setInterval(spawnZombie, 1500);
+
+function movePlayer() {
+    if (keys["w"]) player.y -= player.speed;
+    if (keys["s"]) player.y += player.speed;
+    if (keys["a"]) player.x -= player.speed;
+    if (keys["d"]) player.x += player.speed;
+
+    player.x = Math.max(0, Math.min(canvas.width, player.x));
+    player.y = Math.max(0, Math.min(canvas.height, player.y));
+}
+
+function moveZombies() {
+    zombies.forEach(z => {
+        let dx = player.x - z.x;
+        let dy = player.y - z.y;
+        let dist = Math.sqrt(dx*dx + dy*dy);
+        z.x += (dx/dist) * z.speed;
+        z.y += (dy/dist) * z.speed;
+
+        if (dist < player.size) {
+            endGame();
+        }
+    });
+}
+
+function drawPlayer() {
+    ctx.fillStyle = "cyan";
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+function drawZombies() {
+    ctx.fillStyle = "lime";
+    zombies.forEach(z => {
+        ctx.beginPath();
+        ctx.arc(z.x, z.y, z.size, 0, Math.PI * 2);
+        ctx.fill();
+    });
+}
+
+function drawScore() {
+    ctx.fillStyle = "white";
+    ctx.font = "20px Arial";
+    ctx.fillText("Score: " + score, 20, 30);
+}
+
+function update() {
+    if (gameOver) return;
+
+    movePlayer();
+    moveZombies();
+
+    score++;
+}
+
+function endGame() {
+    gameOver = true;
+
+    // Give XP to hub
+    if (score > 0) {
+        let hubData = JSON.parse(localStorage.getItem("playerHubData"));
+        if (hubData) {
+            hubData.xp += Math.floor(score / 10);
+            hubData.totalScore += score;
+
+            let requiredXP = hubData.level * 100;
+            if (hubData.xp >= requiredXP) {
+                hubData.xp -= requiredXP;
+                hubData.level++;
+                alert("LEVEL UP! You are now Level " + hubData.level);
+            }
+
+            localStorage.setItem("playerHubData", JSON.stringify(hubData));
+        }
+    }
+
+    alert("Game Over! Score: " + score);
+}
+
+function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    drawPlayer();
+    drawZombies();
+    drawScore();
+    update();
+
+    requestAnimationFrame(gameLoop);
+}
+
+function goHome() {
+    window.location.href = "index.html";
+}
+
+gameLoop();
+</script>
+
+</body>
+</html>
