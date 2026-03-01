@@ -37,11 +37,12 @@ Wave: <span id="wave">1</span> |
 Lives: <span id="lives">10</span>
 <br><br>
 <button onclick="startWave()">Start Wave</button>
-<button onclick="upgradeTower()">Upgrade Selected</button>
 <button onclick="goBack()">⬅ Back to Hub</button>
 </div>
 
-<canvas id="gameCanvas" width="900" height="500"></canvas><script>
+<canvas id="gameCanvas" width="900" height="500"></canvas>
+
+<script>
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
@@ -52,65 +53,42 @@ let lives = 10;
 let enemies = [];
 let towers = [];
 let bullets = [];
-let selectedTower = null;
 
 const path = [
     {x:0, y:250},
-    {x:300, y:250},
-    {x:300, y:100},
-    {x:600, y:100},
-    {x:600, y:400},
-    {x:900, y:400}
-];class Enemy{
-    constructor(boss=false){
+    {x:900, y:250}
+];
+
+class Enemy{
+    constructor(){
         this.x = path[0].x;
         this.y = path[0].y;
-        this.pathIndex = 0;
-        this.speed = boss ? 0.7 : 1.5;
-        this.health = boss ? 100 : 30 + wave*5;
-        this.maxHealth = this.health;
-        this.boss = boss;
+        this.speed = 2;
+        this.health = 30;
     }
 
     update(){
-        let target = path[this.pathIndex+1];
-        if(!target) return;
-
-        let dx = target.x - this.x;
-        let dy = target.y - this.y;
-        let dist = Math.sqrt(dx*dx + dy*dy);
-
-        if(dist < 2){
-            this.pathIndex++;
-            if(this.pathIndex >= path.length-1){
-                lives--;
-                enemies.splice(enemies.indexOf(this),1);
-            }
-        }else{
-            this.x += dx/dist * this.speed;
-            this.y += dy/dist * this.speed;
+        this.x += this.speed;
+        if(this.x > canvas.width){
+            lives--;
+            enemies.splice(enemies.indexOf(this),1);
         }
     }
 
     draw(){
-        ctx.fillStyle = this.boss ? "purple" : "red";
+        ctx.fillStyle = "red";
         ctx.beginPath();
         ctx.arc(this.x,this.y,15,0,Math.PI*2);
         ctx.fill();
-
-        ctx.fillStyle="green";
-        ctx.fillRect(this.x-15,this.y-25,
-            (this.health/this.maxHealth)*30,5);
     }
-}class Tower{
+}
+
+class Tower{
     constructor(x,y){
         this.x=x;
         this.y=y;
         this.range=120;
-        this.fireRate=60;
         this.cooldown=0;
-        this.level=1;
-        this.damage=10;
     }
 
     update(){
@@ -125,10 +103,9 @@ const path = [
                 bullets.push({
                     x:this.x,
                     y:this.y,
-                    target:enemy,
-                    damage:this.damage
+                    target:enemy
                 });
-                this.cooldown = this.fireRate;
+                this.cooldown = 60;
                 break;
             }
         }
@@ -140,35 +117,37 @@ const path = [
         ctx.arc(this.x,this.y,20,0,Math.PI*2);
         ctx.fill();
     }
-}function updateBullets(){
+}
+
+function updateBullets(){
     for(let bullet of bullets){
         let dx = bullet.target.x - bullet.x;
         let dy = bullet.target.y - bullet.y;
         let dist = Math.sqrt(dx*dx + dy*dy);
 
         if(dist < 5){
-            bullet.target.health -= bullet.damage;
-
+            bullet.target.health -= 10;
             if(bullet.target.health <= 0){
                 gold += 10;
                 enemies.splice(enemies.indexOf(bullet.target),1);
             }
-
             bullets.splice(bullets.indexOf(bullet),1);
         }else{
             bullet.x += dx/dist*5;
             bullet.y += dy/dist*5;
         }
     }
-}function startWave(){
-    let count = 5 + wave*2;
-    for(let i=0;i<count;i++){
+}
+
+function startWave(){
+    for(let i=0;i<5;i++){
         setTimeout(()=>{
-            let boss = (wave % 5 === 0 && i===count-1);
-            enemies.push(new Enemy(boss));
+            enemies.push(new Enemy());
         }, i*500);
     }
-}canvas.addEventListener("click", e=>{
+}
+
+canvas.addEventListener("click", e=>{
     let rect = canvas.getBoundingClientRect();
     let x = e.clientX - rect.left;
     let y = e.clientY - rect.top;
@@ -177,57 +156,27 @@ const path = [
         towers.push(new Tower(x,y));
         gold -= 50;
     }
-});function upgradeTower(){
-    if(!selectedTower) return;
+});
 
-    if(gold >= 100){
-        selectedTower.level++;
-        selectedTower.damage += 10;
-        selectedTower.range += 20;
-        gold -= 100;
-    }
-}function giveXP(){
-    let hubData = JSON.parse(localStorage.getItem("playerHubData"));
-    if(hubData){
-        let earnedXP = wave*25;
-        hubData.xp += earnedXP;
-        hubData.totalScore += wave*100;
-
-        if(hubData.xp >= hubData.level*100){
-            hubData.xp -= hubData.level*100;
-            hubData.level++;
-            alert("LEVEL UP!");
-        }
-
-        localStorage.setItem("playerHubData", JSON.stringify(hubData));
-    }
-}function gameLoop(){
+function gameLoop(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
 
     document.getElementById("gold").textContent = gold;
     document.getElementById("wave").textContent = wave;
     document.getElementById("lives").textContent = lives;
 
-    // Draw path
     ctx.strokeStyle="white";
     ctx.lineWidth=40;
     ctx.beginPath();
-    ctx.moveTo(path[0].x,path[0].y);
-    for(let p of path){
-        ctx.lineTo(p.x,p.y);
-    }
+    ctx.moveTo(0,250);
+    ctx.lineTo(900,250);
     ctx.stroke();
 
     enemies.forEach(e=>{e.update(); e.draw();});
     towers.forEach(t=>{t.update(); t.draw();});
     updateBullets();
 
-    if(enemies.length===0){
-        wave++;
-    }
-
     if(lives<=0){
-        giveXP();
         alert("Game Over");
         location.reload();
     }
@@ -235,4 +184,12 @@ const path = [
     requestAnimationFrame(gameLoop);
 }
 
-gameLoop();V
+function goBack(){
+    window.location.href = "index.html";
+}
+
+gameLoop();
+</script>
+
+</body>
+</html>
