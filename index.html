@@ -167,6 +167,67 @@ function resetBg() {
     document.body.style.backgroundImage = "";
 }
 </script>
+    <script>
+// ===== PLAYER DATA SYSTEM =====
+let playerData = JSON.parse(localStorage.getItem("playerHubData")) || {
+    xp: 0,
+    level: 1,
+    skinsUnlocked: 0,
+    secretUnlocked: false,
+    totalScore: 0
+};
+
+function savePlayer() {
+    localStorage.setItem("playerHubData", JSON.stringify(playerData));
+}
+
+function addXP(amount) {
+    playerData.xp += amount;
+    playerData.totalScore += amount;
+
+    // Level up system
+    let requiredXP = playerData.level * 100;
+    if (playerData.xp >= requiredXP) {
+        playerData.xp -= requiredXP;
+        playerData.level++;
+        alert("LEVEL UP! You are now Level " + playerData.level);
+    }
+
+    // Unlock skins
+    if (playerData.level >= 3) {
+        playerData.skinsUnlocked = 1;
+    }
+    if (playerData.level >= 5) {
+        playerData.skinsUnlocked = 2;
+    }
+
+    // Unlock secret game
+    if (playerData.level >= 7) {
+        playerData.secretUnlocked = true;
+    }
+
+    savePlayer();
+}
+
+function showPlayerStats() {
+    let statsBox = document.createElement("div");
+    statsBox.style.position = "fixed";
+    statsBox.style.top = "10px";
+    statsBox.style.left = "10px";
+    statsBox.style.background = "black";
+    statsBox.style.color = "white";
+    statsBox.style.padding = "10px";
+    statsBox.style.borderRadius = "8px";
+    statsBox.innerHTML = `
+        <b>Level:</b> ${playerData.level}<br>
+        <b>XP:</b> ${playerData.xp}<br>
+        <b>Total Score:</b> ${playerData.totalScore}
+    `;
+    document.body.appendChild(statsBox);
+}
+
+showPlayerStats();
+</script>
 </body>
 </html>
 
