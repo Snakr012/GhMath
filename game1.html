@@ -208,8 +208,8 @@ function manualSave(){
 function manualLoad(){
     if(localStorage.getItem("empireSave")){
         let s=JSON.parse(localStorage.getItem("empireSave"));
-        Object.assign(window,s);
-        updateUI();
+        Object.assign(window,s); // restore variables
+        updateUI();              // refresh UI immediately
         const status=document.getElementById("saveStatus");
         status.textContent="📂 Game Loaded!";
         setTimeout(()=>{ status.textContent=""; },2000);
