@@ -101,10 +101,24 @@ let skills={}, achievements=[], boostActive=false;
 // Trackers
 let energyUsedForBoosts=0, gemsCrafted=0, worldsExpandedWithEnergy=0;
 
-// LOAD
+// LOAD ON START
 if(localStorage.getItem("empireSave")){
     let s=JSON.parse(localStorage.getItem("empireSave"));
-    Object.assign(window,s);
+    gold = s.gold || 0;
+    energy = s.energy || 0;
+    gems = s.gems || 0;
+    autoClickers = s.autoClickers || 0;
+    generators = s.generators || 0;
+    worldLevel = s.worldLevel || 1;
+    clickValue = s.clickValue || 1;
+    gemClickBoost = s.gemClickBoost || 0;
+    energyBoost = s.energyBoost || 0;
+    skills = s.skills || {};
+    achievements = s.achievements || [];
+    energyUsedForBoosts = s.energyUsedForBoosts || 0;
+    gemsCrafted = s.gemsCrafted || 0;
+    worldsExpandedWithEnergy = s.worldsExpandedWithEnergy || 0;
+
     let offline=(Date.now()-s.lastPlayed)/1000;
     gold += offline*autoClickers;
     energy += offline*generators;
@@ -208,8 +222,22 @@ function manualSave(){
 function manualLoad(){
     if(localStorage.getItem("empireSave")){
         let s=JSON.parse(localStorage.getItem("empireSave"));
-        Object.assign(window,s); // restore variables
-        updateUI();              // refresh UI immediately
+        gold = s.gold || 0;
+        energy = s.energy || 0;
+        gems = s.gems || 0;
+        autoClickers = s.autoClickers || 0;
+        generators = s.generators || 0;
+        worldLevel = s.worldLevel || 1;
+        clickValue = s.clickValue || 1;
+        gemClickBoost = s.gemClickBoost || 0;
+        energyBoost = s.energyBoost || 0;
+        skills = s.skills || {};
+        achievements = s.achievements || [];
+        energyUsedForBoosts = s.energyUsedForBoosts || 0;
+        gemsCrafted = s.gemsCrafted || 0;
+        worldsExpandedWithEnergy = s.worldsExpandedWithEnergy || 0;
+
+        updateUI();
         const status=document.getElementById("saveStatus");
         status.textContent="📂 Game Loaded!";
         setTimeout(()=>{ status.textContent=""; },2000);
