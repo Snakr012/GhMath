@@ -1,52 +1,8 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title>Tower Defense X</title>
-<style>
-body{
-    margin:0;
-    background:#111;
-    color:white;
-    font-family:Arial;
-    text-align:center;
-}
-canvas{
-    background:#1a1a1a;
-    display:block;
-    margin:auto;
-}
-button{
-    padding:10px 20px;
-    background:#00ffcc;
-    border:none;
-    cursor:pointer;
-    font-weight:bold;
-}
-#ui{
-    padding:10px;
-}
-</style>
-</head>
-<body>
-
-<h1>🏰 Tower Defense X</h1>
-
-<div id="ui">
-Gold: <span id="gold">100</span> |
-Wave: <span id="wave">1</span> |
-Lives: <span id="lives">10</span>
-<br><br>
-<button onclick="startWave()">Start Wave</button>
-<button onclick="goBack()">⬅ Back to Hub</button>
-</div>
-
-<canvas id="gameCanvas" width="900" height="500"></canvas>
-
 <script>
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-let gold = 100;
+let gold = 1000;   // 🔥 STARTING GOLD UPDATED
 let wave = 1;
 let lives = 10;
 
@@ -54,25 +10,29 @@ let enemies = [];
 let towers = [];
 let bullets = [];
 
-const path = [
-    {x:0, y:250},
-    {x:900, y:250}
-];
+let waveInProgress = false;
 
 class Enemy{
     constructor(){
-        this.x = path[0].x;
-        this.y = path[0].y;
-        this.speed = 2;
-        this.health = 30;
+        this.x = 0;
+        this.y = 250;
+        this.speed = 2 + wave * 0.2;
+        this.health = 30 + wave * 10;
+        this.maxHealth = this.health;
     }
 
     update(){
         this.x += this.speed;
+
         if(this.x > canvas.width){
             lives--;
-            enemies.splice(enemies.indexOf(this),1);
+            this.remove();
         }
+    }
+
+    remove(){
+        const index = enemies.indexOf(this);
+        if(index > -1) enemies.splice(index,1);
     }
 
     draw(){
@@ -80,6 +40,10 @@ class Enemy{
         ctx.beginPath();
         ctx.arc(this.x,this.y,15,0,Math.PI*2);
         ctx.fill();
+
+        // Health bar
+        ctx.fillStyle = "green";
+        ctx.fillRect(this.x-15, this.y-25, 30*(this.health/this.maxHealth),5);
     }
 }
 
@@ -105,7 +69,7 @@ class Tower{
                     y:this.y,
                     target:enemy
                 });
-                this.cooldown = 60;
+                this.cooldown = 40;
                 break;
             }
         }
@@ -123,7 +87,7 @@ function updateBullets(){
     for(let i = bullets.length - 1; i >= 0; i--){
         let bullet = bullets[i];
 
-        if(!bullet.target){
+        if(!enemies.includes(bullet.target)){
             bullets.splice(i,1);
             continue;
         }
@@ -136,8 +100,8 @@ function updateBullets(){
             bullet.target.health -= 10;
 
             if(bullet.target.health <= 0){
-                gold += 10;
-                enemies.splice(enemies.indexOf(bullet.target),1);
+                gold += 10 + wave;
+                bullet.target.remove();
             }
 
             bullets.splice(i,1);
@@ -159,10 +123,16 @@ function drawBullets(){
 }
 
 function startWave(){
-    for(let i=0;i<5;i++){
+    if(waveInProgress) return;
+
+    waveInProgress = true;
+
+    let enemyCount = 5 + wave * 2;
+
+    for(let i=0;i<enemyCount;i++){
         setTimeout(()=>{
             enemies.push(new Enemy());
-        }, i*500);
+        }, i*400);
     }
 }
 
@@ -197,6 +167,12 @@ function gameLoop(){
     updateBullets();
     drawBullets();
 
+    if(waveInProgress && enemies.length === 0){
+        wave++;
+        waveInProgress = false;
+        gold += 20;
+    }
+
     if(lives<=0){
         alert("Game Over");
         location.reload();
@@ -211,6 +187,3 @@ function goBack(){
 
 gameLoop();
 </script>
-
-</body>
-</html>
