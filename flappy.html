@@ -1,63 +1,88 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Flappy Clone</title>
-    <style>
-        body {
-            margin: 0;
-            background: skyblue;
-            overflow: hidden;
-            text-align: center;
-            font-family: Arial;
-        }
-        canvas {
-            background: #70c5ce;
-            display: block;
-            margin: 0 auto;
-        }
-    </style>
+<title>Flappy Clone Pro</title>
+<style>
+body {
+    margin: 0;
+    overflow: hidden;
+    text-align: center;
+    font-family: Arial;
+    background: linear-gradient(#70c5ce, #4ec0ca);
+}
+
+canvas {
+    display: block;
+    margin: 0 auto;
+    background: transparent;
+}
+
+#startBtn {
+    position: absolute;
+    top: 300px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 15px 30px;
+    font-size: 20px;
+    cursor: pointer;
+}
+</style>
 </head>
 <body>
 
 <h1>🐦 Flappy Clone</h1>
+<button id="startBtn">Start Game</button>
 <canvas id="gameCanvas" width="400" height="600"></canvas>
 
 <script>
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
+const startBtn = document.getElementById("startBtn");
 
-let gameState = "start"; // start, playing, gameover
+let gameState = "start";
+
+let birdImg = new Image();
+birdImg.src = "bird.png";
+
+let flapSound = new Audio("flap.mp3");
+let hitSound = new Audio("hit.mp3");
+
+let clouds = [
+    {x:50, y:100},
+    {x:250, y:200},
+    {x:150, y:350}
+];
 
 let bird = {
     x: 80,
     y: 300,
     gravity: 0.6,
     lift: -10,
-    velocity: 0
+    velocity: 0,
+    size: 40
 };
 
 let pipes = [];
 let frame = 0;
 let score = 0;
+let highScore = localStorage.getItem("flappyHighScore") || 0;
+
+startBtn.onclick = startGame;
 
 document.addEventListener("keydown", function(e) {
-    if (e.code === "Space") {
-        if (gameState === "start") {
-            startGame();
-        } else if (gameState === "playing") {
-            bird.velocity = bird.lift;
-        } else if (gameState === "gameover") {
-            resetGame();
-        }
+    if (e.code === "Space" && gameState === "playing") {
+        bird.velocity = bird.lift;
+        flapSound.play();
     }
 });
 
 function startGame() {
     gameState = "playing";
+    startBtn.style.display = "none";
+    resetGame();
 }
 
 function resetGame() {
-    gameState = "start";
     bird.y = 300;
     bird.velocity = 0;
     pipes = [];
@@ -65,11 +90,20 @@ function resetGame() {
     score = 0;
 }
 
+function drawClouds() {
+    ctx.fillStyle = "white";
+    clouds.forEach(cloud => {
+        ctx.beginPath();
+        ctx.arc(cloud.x, cloud.y, 20, 0, Math.PI * 2);
+        ctx.arc(cloud.x+20, cloud.y, 25, 0, Math.PI * 2);
+        ctx.fill();
+        cloud.x -= 0.5;
+        if (cloud.x < -50) cloud.x = canvas.width + 50;
+    });
+}
+
 function drawBird() {
-    ctx.fillStyle = "yellow";
-    ctx.beginPath();
-    ctx.arc(bird.x, bird.y, 15, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.drawImage(birdImg, bird.x-20, bird.y-20, bird.size, bird.size);
 }
 
 function drawPipes() {
@@ -86,8 +120,8 @@ function update() {
     bird.velocity += bird.gravity;
     bird.y += bird.velocity;
 
-    if (bird.y + 15 > canvas.height || bird.y - 15 < 0) {
-        gameState = "gameover";
+    if (bird.y + 20 > canvas.height || bird.y - 20 < 0) {
+        endGame();
     }
 
     if (frame % 90 === 0) {
@@ -104,11 +138,11 @@ function update() {
         pipe.x -= 3;
 
         if (
-            bird.x + 15 > pipe.x &&
-            bird.x - 15 < pipe.x + 50 &&
-            (bird.y - 15 < pipe.top || bird.y + 15 > pipe.bottom)
+            bird.x + 20 > pipe.x &&
+            bird.x - 20 < pipe.x + 50 &&
+            (bird.y - 20 < pipe.top || bird.y + 20 > pipe.bottom)
         ) {
-            gameState = "gameover";
+            endGame();
         }
 
         if (pipe.x + 50 < 0) {
@@ -120,28 +154,38 @@ function update() {
     frame++;
 }
 
+function endGame() {
+    gameState = "start";
+    hitSound.play();
+    if (score > highScore) {
+        highScore = score;
+        localStorage.setItem("flappyHighScore", highScore);
+    }
+    startBtn.innerText = "Restart";
+    startBtn.style.display = "block";
+}
+
 function drawUI() {
     ctx.fillStyle = "white";
-    ctx.font = "30px Arial";
+    ctx.font = "24px Arial";
     ctx.textAlign = "center";
 
     if (gameState === "start") {
-        ctx.fillText("Press SPACE to Start", canvas.width / 2, 300);
+        ctx.globalAlpha = 0.5 + Math.sin(Date.now()/300)/2;
+        ctx.fillText("Press SPACE to Flap", canvas.width/2, 200);
+        ctx.globalAlpha = 1;
     }
 
     if (gameState === "playing") {
-        ctx.fillText("Score: " + score, canvas.width / 2, 50);
+        ctx.fillText("Score: " + score, canvas.width/2, 50);
     }
 
-    if (gameState === "gameover") {
-        ctx.fillText("Game Over", canvas.width / 2, 260);
-        ctx.fillText("Score: " + score, canvas.width / 2, 310);
-        ctx.fillText("Press SPACE to Restart", canvas.width / 2, 360);
-    }
+    ctx.fillText("High Score: " + highScore, canvas.width/2, 80);
 }
 
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawClouds();
     drawBird();
     drawPipes();
     update();
