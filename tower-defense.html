@@ -1,3 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Tower Defense X</title>
+<style>
+body{
+    margin:0;
+    background:#111;
+    color:white;
+    font-family:Arial;
+    text-align:center;
+}
+canvas{
+    background:#1a1a1a;
+    display:block;
+    margin:auto;
+}
+button{
+    padding:10px 20px;
+    background:#00ffcc;
+    border:none;
+    cursor:pointer;
+    font-weight:bold;
+}
+#ui{
+    padding:10px;
+}
+</style>
+</head>
+<body>
+
+<h1>🏰 Tower Defense X</h1>
+
+<div id="ui">
+Gold: <span id="gold">100</span> |
+Wave: <span id="wave">1</span> |
+Lives: <span id="lives">10</span>
+<br><br>
+<button onclick="startWave()">Start Wave</button>
+<button onclick="goBack()">⬅ Back to Hub</button>
+</div>
+
+<canvas id="gameCanvas" width="900" height="500"></canvas>
+
 <script>
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
@@ -187,3 +231,6 @@ function goBack(){
 
 gameLoop();
 </script>
+
+</body>
+</html>
