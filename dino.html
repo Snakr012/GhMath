@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Dino Runner Pro</title>
+<title>Dino Runner Ultra</title>
 <style>
 body {
     margin: 0;
     overflow: hidden;
     font-family: Arial;
     text-align: center;
-    transition: background 2s;
+    transition: background 1.5s;
 }
 
 canvas {
@@ -19,9 +19,9 @@ canvas {
 </head>
 <body>
 
-<h2>🦖 Dino Runner Pro</h2>
-<p>Press SPACE to Jump</p>
+<h2>🦖 Dino Runner Ultra</h2>
 <p>Score: <span id="score">0</span> | High Score: <span id="highscore">0</span></p>
+<p>Press SPACE to Jump</p>
 
 <canvas id="game" width="800" height="250"></canvas>
 
@@ -29,11 +29,7 @@ canvas {
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-let dino = { x: 60, y: 180, width: 40, height: 40, dy: 0, jumping: false };
 let gravity = 0.8;
-
-let obstacle = { x: 800, y: 190, width: 25, height: 50 };
-
 let speed = 6;
 let score = 0;
 let groundOffset = 0;
@@ -41,81 +37,139 @@ let groundOffset = 0;
 let highScore = localStorage.getItem("dinoHighScore") || 0;
 document.getElementById("highscore").innerText = highScore;
 
+// Sound
+const jumpSound = new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg");
+
+// Dino
+let dino = {
+    x: 60,
+    y: 180,
+    width: 40,
+    height: 40,
+    dy: 0,
+    jumping: false,
+    legFrame: 0
+};
+
+// Clouds
+let clouds = [
+    {x: 200, y: 40},
+    {x: 500, y: 70}
+];
+
+// Obstacles
+let obstacles = [
+    {x: 800, type: "cactus"},
+];
+
 document.addEventListener("keydown", function(e) {
     if (e.code === "Space" && !dino.jumping) {
         dino.dy = -13;
         dino.jumping = true;
+        jumpSound.play();
     }
 });
 
-function drawGround() {
+function drawCloud(x,y){
+    ctx.fillStyle="lightgray";
+    ctx.fillRect(x,y,60,20);
+    ctx.fillRect(x+15,y-10,40,20);
+}
+
+function drawGround(){
     groundOffset -= speed;
     if (groundOffset <= -40) groundOffset = 0;
 
     ctx.fillStyle = "#d2b48c";
-    ctx.fillRect(0, 230, canvas.width, 20);
+    ctx.fillRect(0,230,800,20);
 
     ctx.fillStyle = "#c19a6b";
-    for (let i = 0; i < canvas.width; i += 40) {
-        ctx.fillRect(i + groundOffset, 230, 20, 5);
+    for (let i=0;i<800;i+=40){
+        ctx.fillRect(i+groundOffset,230,20,5);
     }
 }
 
-function drawCactus(x, y) {
-    ctx.fillStyle = "green";
-    ctx.fillRect(x, y, 20, 50);
-    ctx.fillRect(x - 10, y + 15, 10, 10);
-    ctx.fillRect(x + 20, y + 25, 10, 10);
-}
+function drawDino(){
+    ctx.fillStyle="black";
+    ctx.fillRect(dino.x,dino.y,dino.width,dino.height);
 
-function update() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Day/Night cycle
-    if (score % 20 < 10) {
-        document.body.style.background = "#f7f7f7";
+    // Animated legs
+    if (dino.legFrame % 20 < 10){
+        ctx.fillRect(dino.x+5,dino.y+40,10,10);
+        ctx.fillRect(dino.x+25,dino.y+40,10,10);
     } else {
-        document.body.style.background = "#111";
+        ctx.fillRect(dino.x+10,dino.y+40,10,10);
+        ctx.fillRect(dino.x+20,dino.y+40,10,10);
     }
+    dino.legFrame++;
+}
+
+function drawObstacle(ob){
+    if (ob.type==="cactus"){
+        ctx.fillStyle="green";
+        ctx.fillRect(ob.x,190,20,50);
+    } else if (ob.type==="rock"){
+        ctx.fillStyle="gray";
+        ctx.fillRect(ob.x,210,30,30);
+    }
+}
+
+function update(){
+    ctx.clearRect(0,0,800,250);
+
+    // Day/Night
+    if (score % 40 < 20){
+        document.body.style.background="#f7f7f7";
+    } else {
+        document.body.style.background="#111";
+    }
+
+    // Clouds
+    clouds.forEach(c=>{
+        c.x -= speed/2;
+        if (c.x < -80) c.x = 800;
+        drawCloud(c.x,c.y);
+    });
 
     // Dino physics
     dino.dy += gravity;
     dino.y += dino.dy;
 
-    if (dino.y >= 180) {
+    if (dino.y >= 180){
         dino.y = 180;
         dino.jumping = false;
     }
 
-    // Draw dino
-    ctx.fillStyle = "black";
-    ctx.fillRect(dino.x, dino.y, dino.width, dino.height);
+    drawDino();
 
-    // Move obstacle
-    obstacle.x -= speed;
+    // Obstacles
+    obstacles.forEach(ob=>{
+        ob.x -= speed;
 
-    if (obstacle.x + obstacle.width < 0) {
-        obstacle.x = 800;
-        score++;
-        speed += 0.2;
-        document.getElementById("score").innerText = score;
-    }
-
-    drawCactus(obstacle.x, obstacle.y);
-
-    // Collision
-    if (
-        dino.x < obstacle.x + 20 &&
-        dino.x + dino.width > obstacle.x &&
-        dino.y < obstacle.y + 50 &&
-        dino.y + dino.height > obstacle.y
-    ) {
-        if (score > highScore) {
-            localStorage.setItem("dinoHighScore", score);
+        if (ob.x < -40){
+            ob.x = 800;
+            ob.type = Math.random()>0.5 ? "cactus":"rock";
+            score++;
+            speed += 0.2;
+            document.getElementById("score").innerText = score;
         }
-        alert("Game Over! Score: " + score);
-        document.location.reload();
-    }
+
+        drawObstacle(ob);
+
+        // Collision
+        if (
+            dino.x < ob.x + 30 &&
+            dino.x + dino.width > ob.x &&
+            dino.y < 240 &&
+            dino.y + dino.height > 190
+        ){
+            if (score > highScore){
+                localStorage.setItem("dinoHighScore",score);
+            }
+            alert("Game Over! Score: "+score);
+            location.reload();
+        }
+    });
 
     drawGround();
 
