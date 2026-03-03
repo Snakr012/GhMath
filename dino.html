@@ -1,90 +1,96 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Dino Runner Ultra</title>
+<title>Dino Runner Ultra X</title>
 <style>
 body {
-    margin: 0;
-    overflow: hidden;
-    font-family: Arial;
-    text-align: center;
-    transition: background 1.5s;
+    margin:0;
+    overflow:hidden;
+    font-family:Arial;
+    text-align:center;
+    transition:background 1.5s;
 }
-
-canvas {
-    display: block;
-    margin: auto;
+canvas { display:block; margin:auto; }
+#musicBtn{
+    position:fixed;
+    top:15px;
+    right:20px;
+    padding:8px 12px;
+    background:black;
+    color:white;
+    border:none;
+    cursor:pointer;
 }
 </style>
 </head>
 <body>
 
-<h2>🦖 Dino Runner Ultra</h2>
+<h2>🦖 Dino Runner Ultra X</h2>
 <p>Score: <span id="score">0</span> | High Score: <span id="highscore">0</span></p>
-<p>Press SPACE to Jump</p>
 
+<button id="musicBtn">🎵 Music: OFF</button>
 <canvas id="game" width="800" height="250"></canvas>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-let gravity = 0.8;
-let speed = 6;
-let score = 0;
-let groundOffset = 0;
+let gravity=0.8;
+let speed=6;
+let score=0;
+let groundOffset=0;
 
-let highScore = localStorage.getItem("dinoHighScore") || 0;
-document.getElementById("highscore").innerText = highScore;
+let highScore=localStorage.getItem("dinoHighScore")||0;
+document.getElementById("highscore").innerText=highScore;
 
-// Sound
-const jumpSound = new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg");
+// Background music
+let music=new Audio("https://actions.google.com/sounds/v1/ambiences/desert_wind.ogg");
+music.loop=true;
+let musicOn=false;
 
-// Dino
-let dino = {
-    x: 60,
-    y: 180,
-    width: 40,
-    height: 40,
-    dy: 0,
-    jumping: false,
-    legFrame: 0
+document.getElementById("musicBtn").onclick=function(){
+    if(!musicOn){
+        music.play();
+        this.innerText="🎵 Music: ON";
+        musicOn=true;
+    } else {
+        music.pause();
+        this.innerText="🎵 Music: OFF";
+        musicOn=false;
+    }
 };
 
-// Clouds
-let clouds = [
-    {x: 200, y: 40},
-    {x: 500, y: 70}
-];
+// Dino
+let dino={x:60,y:180,width:40,height:40,dy:0,jumping:false,leg:0};
 
 // Obstacles
-let obstacles = [
-    {x: 800, type: "cactus"},
-];
+let obstacles=[{x:800,type:"cactus"}];
 
-document.addEventListener("keydown", function(e) {
-    if (e.code === "Space" && !dino.jumping) {
-        dino.dy = -13;
-        dino.jumping = true;
-        jumpSound.play();
+// Flying enemy
+let birds=[{x:1000,y:140}];
+
+// Controls
+function jump(){
+    if(!dino.jumping){
+        dino.dy=-13;
+        dino.jumping=true;
     }
-});
-
-function drawCloud(x,y){
-    ctx.fillStyle="lightgray";
-    ctx.fillRect(x,y,60,20);
-    ctx.fillRect(x+15,y-10,40,20);
 }
+document.addEventListener("keydown",e=>{
+    if(e.code==="Space") jump();
+});
+canvas.addEventListener("touchstart",jump);
 
+// Drawing
 function drawGround(){
-    groundOffset -= speed;
-    if (groundOffset <= -40) groundOffset = 0;
+    groundOffset-=speed;
+    if(groundOffset<=-40) groundOffset=0;
 
-    ctx.fillStyle = "#d2b48c";
+    ctx.fillStyle="#d2b48c";
     ctx.fillRect(0,230,800,20);
 
-    ctx.fillStyle = "#c19a6b";
-    for (let i=0;i<800;i+=40){
+    ctx.fillStyle="#c19a6b";
+    for(let i=0;i<800;i+=40){
         ctx.fillRect(i+groundOffset,230,20,5);
     }
 }
@@ -93,91 +99,97 @@ function drawDino(){
     ctx.fillStyle="black";
     ctx.fillRect(dino.x,dino.y,dino.width,dino.height);
 
-    // Animated legs
-    if (dino.legFrame % 20 < 10){
+    if(dino.leg%20<10){
         ctx.fillRect(dino.x+5,dino.y+40,10,10);
         ctx.fillRect(dino.x+25,dino.y+40,10,10);
     } else {
         ctx.fillRect(dino.x+10,dino.y+40,10,10);
         ctx.fillRect(dino.x+20,dino.y+40,10,10);
     }
-    dino.legFrame++;
+    dino.leg++;
 }
 
 function drawObstacle(ob){
-    if (ob.type==="cactus"){
+    if(ob.type==="cactus"){
         ctx.fillStyle="green";
         ctx.fillRect(ob.x,190,20,50);
-    } else if (ob.type==="rock"){
+    } else {
         ctx.fillStyle="gray";
         ctx.fillRect(ob.x,210,30,30);
     }
 }
 
+function drawBird(b){
+    ctx.fillStyle="purple";
+    ctx.fillRect(b.x,b.y,30,20);
+}
+
+// Update
 function update(){
     ctx.clearRect(0,0,800,250);
 
-    // Day/Night
-    if (score % 40 < 20){
+    if(score%40<20){
         document.body.style.background="#f7f7f7";
     } else {
         document.body.style.background="#111";
     }
 
-    // Clouds
-    clouds.forEach(c=>{
-        c.x -= speed/2;
-        if (c.x < -80) c.x = 800;
-        drawCloud(c.x,c.y);
-    });
-
-    // Dino physics
-    dino.dy += gravity;
-    dino.y += dino.dy;
-
-    if (dino.y >= 180){
-        dino.y = 180;
-        dino.jumping = false;
+    dino.dy+=gravity;
+    dino.y+=dino.dy;
+    if(dino.y>=180){
+        dino.y=180;
+        dino.jumping=false;
     }
 
     drawDino();
+    drawGround();
 
-    // Obstacles
     obstacles.forEach(ob=>{
-        ob.x -= speed;
-
-        if (ob.x < -40){
-            ob.x = 800;
-            ob.type = Math.random()>0.5 ? "cactus":"rock";
+        ob.x-=speed;
+        if(ob.x<-40){
+            ob.x=800;
+            ob.type=Math.random()>0.5?"cactus":"rock";
             score++;
-            speed += 0.2;
-            document.getElementById("score").innerText = score;
+            speed+=0.2;
+            document.getElementById("score").innerText=score;
         }
-
         drawObstacle(ob);
 
-        // Collision
-        if (
-            dino.x < ob.x + 30 &&
-            dino.x + dino.width > ob.x &&
-            dino.y < 240 &&
-            dino.y + dino.height > 190
-        ){
-            if (score > highScore){
-                localStorage.setItem("dinoHighScore",score);
-            }
-            alert("Game Over! Score: "+score);
-            location.reload();
+        if(dino.x<ob.x+30 &&
+           dino.x+dino.width>ob.x &&
+           dino.y+40>190){
+            gameOver();
         }
     });
 
-    drawGround();
+    birds.forEach(b=>{
+        b.x-=speed+2;
+        if(b.x<-40){
+            b.x=900;
+            b.y=Math.random()>0.5?140:160;
+        }
+        drawBird(b);
+
+        if(dino.x<b.x+30 &&
+           dino.x+dino.width>b.x &&
+           dino.y<b.y+20 &&
+           dino.y+dino.height>b.y){
+            gameOver();
+        }
+    });
 
     requestAnimationFrame(update);
 }
 
+function gameOver(){
+    if(score>highScore){
+        localStorage.setItem("dinoHighScore",score);
+    }
+    alert("Game Over! Score: "+score);
+    location.reload();
+}
+
 update();
 </script>
-
 </body>
 </html>
