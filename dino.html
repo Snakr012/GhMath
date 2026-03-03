@@ -1,57 +1,89 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Dino Clone</title>
+<title>Dino Runner Pro</title>
 <style>
 body {
     margin: 0;
-    background: #f7f7f7;
     overflow: hidden;
     font-family: Arial;
     text-align: center;
+    transition: background 2s;
 }
 
 canvas {
-    background: white;
     display: block;
     margin: auto;
-    border-bottom: 3px solid black;
 }
 </style>
 </head>
 <body>
 
-<h2>🦖 Dino Runner</h2>
+<h2>🦖 Dino Runner Pro</h2>
 <p>Press SPACE to Jump</p>
-<canvas id="game" width="800" height="200"></canvas>
+<p>Score: <span id="score">0</span> | High Score: <span id="highscore">0</span></p>
+
+<canvas id="game" width="800" height="250"></canvas>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-let dino = { x: 50, y: 150, width: 40, height: 40, dy: 0, jumping: false };
+let dino = { x: 60, y: 180, width: 40, height: 40, dy: 0, jumping: false };
 let gravity = 0.8;
 
-let obstacle = { x: 800, y: 160, width: 20, height: 40 };
+let obstacle = { x: 800, y: 190, width: 25, height: 50 };
+
 let speed = 6;
 let score = 0;
+let groundOffset = 0;
+
+let highScore = localStorage.getItem("dinoHighScore") || 0;
+document.getElementById("highscore").innerText = highScore;
 
 document.addEventListener("keydown", function(e) {
     if (e.code === "Space" && !dino.jumping) {
-        dino.dy = -12;
+        dino.dy = -13;
         dino.jumping = true;
     }
 });
 
+function drawGround() {
+    groundOffset -= speed;
+    if (groundOffset <= -40) groundOffset = 0;
+
+    ctx.fillStyle = "#d2b48c";
+    ctx.fillRect(0, 230, canvas.width, 20);
+
+    ctx.fillStyle = "#c19a6b";
+    for (let i = 0; i < canvas.width; i += 40) {
+        ctx.fillRect(i + groundOffset, 230, 20, 5);
+    }
+}
+
+function drawCactus(x, y) {
+    ctx.fillStyle = "green";
+    ctx.fillRect(x, y, 20, 50);
+    ctx.fillRect(x - 10, y + 15, 10, 10);
+    ctx.fillRect(x + 20, y + 25, 10, 10);
+}
+
 function update() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Dino gravity
+    // Day/Night cycle
+    if (score % 20 < 10) {
+        document.body.style.background = "#f7f7f7";
+    } else {
+        document.body.style.background = "#111";
+    }
+
+    // Dino physics
     dino.dy += gravity;
     dino.y += dino.dy;
 
-    if (dino.y >= 150) {
-        dino.y = 150;
+    if (dino.y >= 180) {
+        dino.y = 180;
         dino.jumping = false;
     }
 
@@ -65,22 +97,27 @@ function update() {
     if (obstacle.x + obstacle.width < 0) {
         obstacle.x = 800;
         score++;
-        speed += 0.3;
+        speed += 0.2;
+        document.getElementById("score").innerText = score;
     }
 
-    // Draw obstacle
-    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+    drawCactus(obstacle.x, obstacle.y);
 
     // Collision
     if (
-        dino.x < obstacle.x + obstacle.width &&
+        dino.x < obstacle.x + 20 &&
         dino.x + dino.width > obstacle.x &&
-        dino.y < obstacle.y + obstacle.height &&
+        dino.y < obstacle.y + 50 &&
         dino.y + dino.height > obstacle.y
     ) {
+        if (score > highScore) {
+            localStorage.setItem("dinoHighScore", score);
+        }
         alert("Game Over! Score: " + score);
         document.location.reload();
     }
+
+    drawGround();
 
     requestAnimationFrame(update);
 }
