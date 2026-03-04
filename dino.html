@@ -182,14 +182,60 @@ function update(){
 }
 
 function gameOver(){
-    if(score>highScore){
-        localStorage.setItem("dinoHighScore",score);
+    let playerName = prompt("Enter your name:");
+    if (playerName) {
+        submitScore(playerName, score);
     }
-    alert("Game Over! Score: "+score);
+    alert("Game Over! Score: " + score);
     location.reload();
 }
 
 update();
+</script>
+    <h2>🏆 Global Leaderboard</h2>
+<div id="leaderboard"></div>
+
+<script>
+const BIN_ID = 69a879a443b1c97be9b37c71;
+const ACCESS_KEY = 69a87b55d0ea881f40eeeb82;
+
+async function getScores() {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+        headers: { "X-Access-Key": ACCESS_KEY }
+    });
+    const data = await res.json();
+    return data.record.scores || [];
+}
+
+async function saveScores(scores) {
+    await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            "X-Access-Key": ACCESS_KEY
+        },
+        body: JSON.stringify({ scores })
+    });
+}
+
+async function submitScore(name, score) {
+    let scores = await getScores();
+    scores.push({ name, score });
+    scores.sort((a, b) => b.score - a.score);
+    scores = scores.slice(0, 10);
+    await saveScores(scores);
+}
+
+async function loadLeaderboard() {
+    let scores = await getScores();
+    const board = document.getElementById("leaderboard");
+    board.innerHTML = "";
+    scores.forEach((entry, index) => {
+        board.innerHTML += `<p>${index + 1}. ${entry.name} - ${entry.score}</p>`;
+    });
+}
+
+window.onload = loadLeaderboard;
 </script>
 </body>
 </html>
